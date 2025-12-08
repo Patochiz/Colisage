@@ -703,6 +703,40 @@ function updateMainActionButtons() {
     }
 }
 
+/**
+ * Helper : Déterminer à quelle section appartient un colis
+ * Retourne l'index de la section ou null si pas de section
+ */
+function getPackageSectionIndex(pkg) {
+    if (!window.colisageData || !window.colisageData.sections || window.colisageData.sections.length === 0) {
+        return null;
+    }
+
+    // Parcourir les items du colis pour trouver la section
+    for (const item of pkg.items) {
+        if (!item.productId || !item.productId.startsWith('prod_')) continue;
+
+        // Chercher dans quelle section se trouve ce produit
+        for (let sectionIndex = 0; sectionIndex < window.colisageData.sections.length; sectionIndex++) {
+            const section = window.colisageData.sections[sectionIndex];
+            if (section.produits && section.produits.includes(item.productId)) {
+                return sectionIndex;
+            }
+        }
+    }
+
+    // Si aucun produit n'appartient à une section, vérifier les produits avant le premier titre
+    if (window.colisageData.produitsAvantPremierTitre && window.colisageData.produitsAvantPremierTitre.length > 0) {
+        for (const item of pkg.items) {
+            if (item.productId && window.colisageData.produitsAvantPremierTitre.includes(item.productId)) {
+                return -1; // -1 = produits avant le premier titre
+            }
+        }
+    }
+
+    return null; // Pas de section (colis libre probablement)
+}
+
 function renderColisSummary() {
     const container = document.getElementById('colis-summary');
     if (!container) return;
@@ -733,8 +767,63 @@ function renderColisSummary() {
     }
     
     html += '<div class="colis-list">';
-    
-    colisageApp.packages.forEach((pkg, index) => {
+
+    // Regrouper les colis par section
+    const packagesBySection = new Map();
+    packagesBySection.set(-1, []); // Produits avant le premier titre
+    packagesBySection.set(null, []); // Colis libres/sans section
+
+    // Initialiser les sections
+    if (window.colisageData && window.colisageData.sections) {
+        window.colisageData.sections.forEach((section, index) => {
+            packagesBySection.set(index, []);
+        });
+    }
+
+    // Classer chaque colis dans sa section
+    colisageApp.packages.forEach(pkg => {
+        const sectionIndex = getPackageSectionIndex(pkg);
+        const packagesInSection = packagesBySection.get(sectionIndex) || [];
+        packagesInSection.push(pkg);
+        packagesBySection.set(sectionIndex, packagesInSection);
+    });
+
+    // Afficher les sections dans l'ordre
+    let displayedSections = [];
+
+    // D'abord les produits avant le premier titre (si présents)
+    if (packagesBySection.get(-1).length > 0) {
+        displayedSections.push({ index: -1, packages: packagesBySection.get(-1), title: null });
+    }
+
+    // Puis les sections avec titres
+    if (window.colisageData && window.colisageData.sections) {
+        window.colisageData.sections.forEach((section, index) => {
+            if (packagesBySection.get(index).length > 0) {
+                displayedSections.push({ index, packages: packagesBySection.get(index), title: section.titre });
+            }
+        });
+    }
+
+    // Enfin les colis libres/sans section
+    if (packagesBySection.get(null).length > 0) {
+        displayedSections.push({ index: null, packages: packagesBySection.get(null), title: null });
+    }
+
+    // Afficher chaque section avec ses colis
+    displayedSections.forEach((section) => {
+        // Afficher le titre de section si présent
+        if (section.title) {
+            html += `
+                <div class="colis-section-titre">
+                    <div class="colis-section-titre-icon">📋</div>
+                    <div class="colis-section-titre-text">${section.title}</div>
+                </div>
+            `;
+        }
+
+        // Afficher les colis de cette section
+        section.packages.forEach((pkg, index) => {
         const weightPerPackage = pkg.items.reduce((sum, item) => sum + (item.quantity * item.weight), 0);
         const surfacePerPackage = pkg.items.reduce((sum, item) => {
             if (item.largeur && item.largeur !== null && item.largeur > 0) {
@@ -803,8 +892,9 @@ function renderColisSummary() {
         }
         
         html += `</div>`;
-    });
-    
+        }); // Fin de la boucle section.packages.forEach
+    }); // Fin de la boucle displayedSections.forEach
+
     html += `</div>`;
 
     container.innerHTML = html;
