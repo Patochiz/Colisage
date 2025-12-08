@@ -470,21 +470,23 @@
     transform: scale(0.95);
 }
 
+/* Wrapper sticky pour l'éditeur + boutons */
+.sticky-editor-wrapper {
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
 /* Section édition de colis */
 .colis-editor {
     background: white;
     border: 1px solid #dee2e6;
     border-radius: 8px;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-
-    /* Position sticky pour suivre le scroll */
-    position: sticky;
-    top: 20px;
-    z-index: 10;
-    max-height: calc(100vh - 40px); /* Hauteur max = hauteur viewport - marges */
-    overflow-y: auto; /* Scroll interne si le contenu dépasse */
 }
 
 .colis-editor-header {
@@ -704,7 +706,6 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    margin-top: 0.75rem;
     background: white;
     border: 1px solid #dee2e6;
     border-radius: 8px;

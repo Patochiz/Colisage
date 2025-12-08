@@ -168,6 +168,9 @@ print '</div>';
 // COLONNE DROITE (60%) : Éditeur de colis + Liste des colis
 print '<div class="colisage-right-column">';
 
+// Wrapper sticky pour l'éditeur + boutons
+print '<div class="sticky-editor-wrapper">';
+
 // Éditeur de colis
 print '<div class="colis-editor" id="colis-editor">';
 print '<div class="empty-editor">';
@@ -190,6 +193,8 @@ print '<span class="loading-spinner"></span> Sauvegarde...';
 print '</div>';
 print '</div>';
 print '</div>';
+
+print '</div>'; // End sticky-editor-wrapper
 
 // Liste des colis créés
 print '<div class="summary-section" style="margin-top: 1rem;">';
