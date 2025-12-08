@@ -470,21 +470,20 @@
     transform: scale(0.95);
 }
 
-/* Wrapper sticky pour l'éditeur + boutons */
-.sticky-editor-wrapper {
-    position: sticky;
-    top: 20px;
-    z-index: 10;
-}
-
-/* Section édition de colis */
+/* Section édition de colis - sticky */
 .colis-editor {
     background: white;
     border: 1px solid #dee2e6;
     border-radius: 8px;
-    margin-bottom: 0.75rem;
-    overflow: visible; /* Pas de scroll interne pour ne pas bloquer le sticky */
+    margin-bottom: 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+    /* Sticky avec scroll interne */
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+    max-height: calc(100vh - 180px); /* Laisser de la place pour les boutons */
+    overflow-y: auto;
 }
 
 .colis-editor-header {
@@ -698,7 +697,7 @@
     font-weight: 500;
 }
 
-/* Actions sous l'éditeur */
+/* Actions sous l'éditeur - sticky */
 .colisage-actions-bottom {
     display: flex;
     justify-content: space-between;
@@ -708,6 +707,12 @@
     border: 1px solid #dee2e6;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+    /* Sticky juste en dessous de l'éditeur */
+    position: sticky;
+    top: calc(100vh - 160px); /* Positionné vers le bas de l'écran */
+    z-index: 9;
+    margin-top: 0.75rem;
 }
 
 .colisage-actions-bottom .actions-left {
