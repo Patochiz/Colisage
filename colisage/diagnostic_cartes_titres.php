@@ -152,7 +152,12 @@ if ($service_361_count == 0) {
 
     foreach ($sections_detectees as $section) {
         // Logique pour déterminer le titre (comme dans colisage_tab.php)
-        $titre_affiche = !empty($section['ref_chantier']) ? $section['ref_chantier'] : $section['label'];
+        // Priorité 1 : ref_chantier, sinon description de la ligne (desc ou description)
+        if (!empty($section['ref_chantier'])) {
+            $titre_affiche = $section['ref_chantier'];
+        } else {
+            $titre_affiche = !empty($section['desc']) ? $section['desc'] : (!empty($section['description']) ? $section['description'] : '');
+        }
 
         // Afficher en rouge si vide
         $style_titre = empty($titre_affiche) ? 'color: red; font-weight: bold;' : 'font-weight: bold;';
@@ -175,7 +180,11 @@ if ($service_361_count == 0) {
     // Suggestion de correction si tous les titres sont vides
     $tous_vides = true;
     foreach ($sections_detectees as $section) {
-        $titre = !empty($section['ref_chantier']) ? $section['ref_chantier'] : $section['label'];
+        if (!empty($section['ref_chantier'])) {
+            $titre = $section['ref_chantier'];
+        } else {
+            $titre = !empty($section['desc']) ? $section['desc'] : (!empty($section['description']) ? $section['description'] : '');
+        }
         if (!empty($titre)) {
             $tous_vides = false;
             break;
@@ -185,12 +194,11 @@ if ($service_361_count == 0) {
     if ($tous_vides) {
         print "<div style='background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px;'>";
         print "<h3>⚠️ TOUS LES TITRES SONT VIDES</h3>";
-        print "<p><strong>Cause probable :</strong> Les lignes de commande avec le service ID=361 n'ont pas de description/label rempli.</p>";
-        print "<p><strong>Solutions possibles :</strong></p>";
+        print "<p><strong>Cause :</strong> Les lignes de commande avec le service ID=361 n'ont ni ref_chantier ni description remplie.</p>";
+        print "<p><strong>Solutions :</strong></p>";
         print "<ol>";
-        print "<li><strong>Solution immédiate :</strong> Modifier le code pour utiliser le label du produit (product->label) comme fallback</li>";
-        print "<li><strong>Solution manuelle :</strong> Éditer chaque ligne de commande et remplir le champ 'Description'</li>";
-        print "<li><strong>Solution personnalisée :</strong> Utiliser l'extrafield ref_chantier pour définir des titres personnalisés</li>";
+        print "<li><strong>Solution recommandée :</strong> Éditer chaque ligne dans la commande et remplir le champ 'Description'</li>";
+        print "<li><strong>Solution alternative :</strong> Utiliser l'extrafield ref_chantier pour définir des titres personnalisés via l'icône ✏️</li>";
         print "</ol>";
         print "</div>";
     }

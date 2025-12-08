@@ -249,30 +249,12 @@ foreach ($object->lines as $line) {
             $ref_chantier = $line->array_options['options_ref_chantier'];
         }
 
-        // CORRECTION : Utiliser plusieurs fallbacks pour éviter les titres vides
-        $titre_affiche = '';
-
-        // Priorité 1 : ref_chantier (extrafield personnalisé)
+        // Logique simplifiée : ref_chantier en priorité, sinon description de la ligne
         if (!empty($ref_chantier)) {
             $titre_affiche = $ref_chantier;
-        }
-        // Priorité 2 : label de la ligne (description dans la commande)
-        elseif (!empty($line->label)) {
-            $titre_affiche = $line->label;
-        }
-        // Priorité 3 : product_label (nom du produit dans la ligne)
-        elseif (!empty($line->product_label)) {
-            $titre_affiche = $line->product_label;
-        }
-        // Priorité 4 : Charger le produit depuis la base
-        else {
-            $product_temp = new Product($db);
-            if ($product_temp->fetch($line->fk_product) > 0 && !empty($product_temp->label)) {
-                $titre_affiche = $product_temp->label;
-            } else {
-                // Priorité 5 : Fallback final avec le rang de la ligne
-                $titre_affiche = "Section #" . $line->rang;
-            }
+        } else {
+            // Utiliser la description de la ligne (desc ou description)
+            $titre_affiche = !empty($line->desc) ? $line->desc : (!empty($line->description) ? $line->description : '');
         }
         
         // Créer une nouvelle section
@@ -286,7 +268,7 @@ foreach ($object->lines as $line) {
         );
         
         if ($debug_mode) {
-            error_log("DEBUG COLISAGE - Titre de section détecté (Service ID=361): titre='{$titre_affiche}' (ref_chantier: '{$ref_chantier}', label: '{$line->label}', rowid: {$line->rowid})");
+            error_log("DEBUG COLISAGE - Titre de section détecté (Service ID=361): titre='{$titre_affiche}' (ref_chantier: '{$ref_chantier}', desc: '{$line->desc}', rowid: {$line->rowid})");
         }
         
         continue; // Ne pas traiter comme un produit
