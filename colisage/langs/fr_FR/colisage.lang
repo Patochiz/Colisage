@@ -1,0 +1,99 @@
+# Copyright (C) 2025 Patrice GOURMELEN <pgourmelen@diamant-industrie.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#
+# Generic
+#
+
+# Module label 'ModuleColisageName'
+ModuleColisageName = Colisage
+# Module description 'ModuleColisageDesc'
+ModuleColisageDesc = Module de gestion du colisage pour les commandes clients
+
+#
+# Admin page
+#
+ColisageSetup = Configuration Colisage
+Settings = Paramètres
+ColisageSetupPage = Page de configuration Colisage
+NewSection=Nouvelle section
+COLISAGE_MYPARAM1 = Mon paramètre 1
+COLISAGE_MYPARAM1Tooltip = Tooltip de mon paramètre 1
+COLISAGE_MYPARAM2=Mon paramètre 2
+COLISAGE_MYPARAM2Tooltip=Tooltip de mon paramètre 2
+
+
+#
+# About page
+#
+About = À propos
+ColisageAbout = À propos du Colisage
+ColisageAboutPage = Page à propos du Colisage
+
+#
+# Colisage tab
+#
+Colisage = Colisage
+ColisageManagement = Gestion du Colisage
+PackagesList = Liste des Colis
+ProductsSummary = Récapitulatif des Produits
+CreateStandardPackage = Créer un colis standard
+CreateFreePackage = Créer un colis libre
+EditPackage = Éditer le colis
+DeletePackage = Supprimer le colis
+PackageEditor = Éditeur de colis
+NoPackageSelected = Aucun colis sélectionné
+SelectPackageToEdit = Sélectionnez un colis dans la liste de droite pour le modifier
+Quantity = Quantité
+Packages = colis
+WeightPerPackage = Poids/colis
+SurfacePerPackage = Surface/colis
+TotalWeight = Poids total
+TotalSurface = Surface totale
+AddItem = Ajouter un article
+RemoveItem = Supprimer l'article
+ChooseProduct = Choisir produit...
+ChooseDetail = Choisir détail...
+ArticleName = Nom de l'article
+Length = Longueur
+Width = Largeur
+Description = Description
+UnitWeight = Poids/unité
+SaveColisage = Enregistrer le Colisage
+Cancel = Annuler
+NoProductsAvailable = Plus de produits disponibles
+AllProductsPackaged = Tous les produits ont été colisés
+RemainingPieces = pièces restantes
+NoPackagesCreated = Aucun colis créé
+StockExhausted = Stock épuisé
+LoadingProducts = Chargement des produits...
+LoadingPackages = Chargement des colis...
+Loading = Chargement...
+PleaseWait = Veuillez patienter pendant le chargement des données
+ColisageSuccessfullySaved = Colisage sauvegardé avec succès !
+ErrorSaving = Erreur lors de la sauvegarde
+CommunicationError = Erreur de communication avec le serveur
+
+#
+# Sample page
+#
+ColisageArea = Accueil Colisage
+MyPageName = Nom de ma page
+
+#
+# Sample widget
+#
+MyWidget = Mon widget
+MyWidgetDescription = Description de mon widget

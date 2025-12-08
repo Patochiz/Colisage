@@ -1,0 +1,99 @@
+# Copyright (C) 2025 Patrice GOURMELEN <pgourmelen@diamant-industrie.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#
+# Generic
+#
+
+# Module label 'ModuleColisageName'
+ModuleColisageName = Packaging
+# Module description 'ModuleColisageDesc'
+ModuleColisageDesc = Packaging management module for customer orders
+
+#
+# Admin page
+#
+ColisageSetup = Packaging Setup
+Settings = Settings
+ColisageSetupPage = Packaging setup page
+NewSection=New section
+COLISAGE_MYPARAM1 = My parameter 1
+COLISAGE_MYPARAM1Tooltip = My parameter 1 tooltip
+COLISAGE_MYPARAM2=My parameter 2
+COLISAGE_MYPARAM2Tooltip=My parameter 2 tooltip
+
+
+#
+# About page
+#
+About = About
+ColisageAbout = About Packaging
+ColisageAboutPage = Packaging about page
+
+#
+# Colisage tab
+#
+Colisage = Packaging
+ColisageManagement = Packaging Management
+PackagesList = Packages List
+ProductsSummary = Products Summary
+CreateStandardPackage = Create standard package
+CreateFreePackage = Create free package
+EditPackage = Edit package
+DeletePackage = Delete package
+PackageEditor = Package Editor
+NoPackageSelected = No package selected
+SelectPackageToEdit = Select a package from the right list to edit it
+Quantity = Quantity
+Packages = packages
+WeightPerPackage = Weight/package
+SurfacePerPackage = Surface/package
+TotalWeight = Total weight
+TotalSurface = Total surface
+AddItem = Add item
+RemoveItem = Remove item
+ChooseProduct = Choose product...
+ChooseDetail = Choose detail...
+ArticleName = Item name
+Length = Length
+Width = Width
+Description = Description
+UnitWeight = Weight/unit
+SaveColisage = Save Packaging
+Cancel = Cancel
+NoProductsAvailable = No more products available
+AllProductsPackaged = All products have been packaged
+RemainingPieces = remaining pieces
+NoPackagesCreated = No packages created
+StockExhausted = Stock exhausted
+LoadingProducts = Loading products...
+LoadingPackages = Loading packages...
+Loading = Loading...
+PleaseWait = Please wait while loading data
+ColisageSuccessfullySaved = Packaging successfully saved!
+ErrorSaving = Error while saving
+CommunicationError = Communication error with server
+
+#
+# Sample page
+#
+ColisageArea = Packaging Home
+MyPageName = My page name
+
+#
+# Sample widget
+#
+MyWidget = My widget
+MyWidgetDescription = My widget description
