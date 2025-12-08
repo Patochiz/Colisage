@@ -810,7 +810,7 @@ function renderColisSummary() {
         displayedSections.push({ index: null, packages: packagesBySection.get(null), title: null });
     }
 
-    // Afficher chaque section avec ses colis
+    // Afficher chaque section avec ses colis regroupés par produit
     displayedSections.forEach((section) => {
         // Afficher le titre de section si présent
         if (section.title) {
@@ -822,8 +822,44 @@ function renderColisSummary() {
             `;
         }
 
-        // Afficher les colis de cette section
-        section.packages.forEach((pkg, index) => {
+        // Regrouper les colis de cette section par produit
+        const packagesByProduct = new Map();
+
+        section.packages.forEach(pkg => {
+            // Pour chaque item dans le colis, on l'associe au produit
+            pkg.items.forEach(item => {
+                const productId = item.productId;
+                const productName = item.productId.startsWith('prod_')
+                    ? colisageApp.productData[item.productId]?.name || 'Produit inconnu'
+                    : item.customName || 'Article libre';
+
+                if (!packagesByProduct.has(productId)) {
+                    packagesByProduct.set(productId, {
+                        name: productName,
+                        packages: []
+                    });
+                }
+
+                // Vérifier si ce colis n'est pas déjà dans la liste pour ce produit
+                const productGroup = packagesByProduct.get(productId);
+                if (!productGroup.packages.some(p => p.id === pkg.id)) {
+                    productGroup.packages.push(pkg);
+                }
+            });
+        });
+
+        // Afficher chaque groupe de produits
+        packagesByProduct.forEach((productGroup, productId) => {
+            // Afficher le nom du produit
+            html += `
+                <div class="colis-product-titre">
+                    <div class="colis-product-titre-icon">📦</div>
+                    <div class="colis-product-titre-text">${productGroup.name}</div>
+                </div>
+            `;
+
+            // Afficher les colis contenant ce produit
+            productGroup.packages.forEach((pkg) => {
         const weightPerPackage = pkg.items.reduce((sum, item) => sum + (item.quantity * item.weight), 0);
         const surfacePerPackage = pkg.items.reduce((sum, item) => {
             if (item.largeur && item.largeur !== null && item.largeur > 0) {
@@ -835,7 +871,7 @@ function renderColisSummary() {
         const isSelected = normalizePackageId(colisageApp.selectedPackageId) === normalizePackageId(pkg.id);
         
         html += `
-            <div class="colis-item ${isSelected ? 'selected' : ''}" 
+            <div class="colis-item colis-under-product ${isSelected ? 'selected' : ''}" 
                  onclick="selectPackage('${pkg.id}')" 
                  data-package-id="${pkg.id}">
                 <div class="colis-item-header">
@@ -892,8 +928,9 @@ function renderColisSummary() {
         }
         
         html += `</div>`;
-        }); // Fin de la boucle section.packages.forEach
-    }); // Fin de la boucle displayedSections.forEach
+            }); // Fin de productGroup.packages.forEach
+        }); // Fin de packagesByProduct.forEach
+    }); // Fin de displayedSections.forEach
 
     html += `</div>`;
 

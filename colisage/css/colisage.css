@@ -1244,6 +1244,43 @@
     letter-spacing: 0.3px;
 }
 
+/* Titre de produit dans la liste des colis (sous-niveau) */
+.colis-product-titre {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    border-radius: 4px;
+    padding: 0;
+    margin: 10px 0 8px 15px;
+    box-shadow: 0 1px 3px rgba(72, 187, 120, 0.15);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.colis-product-titre-icon {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 35px;
+    border-right: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.colis-product-titre-text {
+    flex: 1;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.95);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+/* Indentation des colis sous un produit */
+.colis-under-product {
+    margin-left: 25px;
+}
+
 .product-in-section::before {
     content: '';
     position: absolute;
