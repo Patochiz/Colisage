@@ -475,7 +475,6 @@
     position: sticky;
     top: 20px;
     z-index: 10;
-    align-self: flex-start; /* Important pour le sticky avec flex parent */
 }
 
 /* Section édition de colis */
@@ -484,10 +483,8 @@
     border: 1px solid #dee2e6;
     border-radius: 8px;
     margin-bottom: 0.75rem;
-    overflow: hidden;
+    overflow: visible; /* Pas de scroll interne pour ne pas bloquer le sticky */
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    max-height: calc(100vh - 200px); /* Hauteur max pour l'éditeur */
-    overflow-y: auto; /* Scroll interne si nécessaire */
 }
 
 .colis-editor-header {
@@ -756,6 +753,7 @@
     grid-template-columns: 40% 60%;
     gap: 1rem;
     margin-bottom: 1rem;
+    align-items: start; /* Important pour que sticky fonctionne correctement */
 }
 
 .colisage-left-column {
