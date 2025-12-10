@@ -560,7 +560,7 @@ function generateColisageHtmlList($commande_id, $db) {
     foreach ($displayed_sections as $section_data) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
-            $html .= '<strong style="font-size: 1.1em; color: #667eea;">📋 ' . htmlspecialchars($section_data['titre']) . '</strong><br>';
+            $html .= '<strong style="font-size: 1.1em; color: #667eea;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
         }
 
         // Regrouper les colis par produit dans cette section
@@ -599,12 +599,10 @@ function generateColisageHtmlList($commande_id, $db) {
         // Afficher chaque groupe de produits
         foreach ($packages_by_product as $product_name => $pkgs) {
             // Afficher le nom du produit
-            $html .= '&nbsp;&nbsp;<span style="color: #48bb78;">📦 ' . htmlspecialchars($product_name) . '</span><br>';
+            $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
 
             // Afficher tous les colis de ce produit
             foreach ($pkgs as $pkg) {
-                $checkbox = '[ ] ';
-
                 // Formater le multiplicateur
                 if ($pkg->multiplier > 1) {
                     $multiplier_text = '<strong>' . $pkg->multiplier . ' colis de </strong>';
@@ -615,9 +613,9 @@ function generateColisageHtmlList($commande_id, $db) {
                 // Afficher tous les items de ce colis
                 foreach ($pkg->items as $item_index => $item) {
                     if ($item_index == 0) {
-                        $line_prefix = '&nbsp;&nbsp;&nbsp;&nbsp;' . $checkbox . $multiplier_text;
+                        $line_prefix = '---' . $multiplier_text;
                     } else {
-                        $line_prefix = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ ';
+                        $line_prefix = '---+ ';
                     }
 
                     // Formater les dimensions et surface
