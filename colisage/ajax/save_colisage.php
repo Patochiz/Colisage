@@ -396,218 +396,258 @@ if ($action === 'save_colisage') {
 }
 
 /**
- * Generate HTML list of packages for extrafield with checkboxes for production tracking
- * 
- * NEW FEATURE: Each package line now has a checkbox (☐) for operators to track production
- * 
- * FORMAT:
- * - Single product packages are grouped together with checkboxes
- * - Multi-product packages are displayed separately with checkboxes
- * - Checkbox symbol: ☐ (empty checkbox that can be checked manually when printed)
+ * Generate HTML list of packages for extrafield with hierarchical structure
+ *
+ * NEW HIERARCHY:
+ * - Titre (Section)
+ *   - Produit
+ *     - Colis (with checkboxes)
+ *
+ * MULTI-REF HANDLING:
+ * - If a package contains products from multiple sections, it goes to "Multi Ref" section
  */
 function generateColisageHtmlList($commande_id, $db) {
+    require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
     $package = new ColisagePackage($db);
     $packages = $package->fetchByCommande($commande_id);
-    
+
     if (empty($packages)) {
         return '';
     }
-    
-    // Charger la commande pour récupérer les lignes et les libellés de produits
+
+    // Charger la commande pour récupérer les lignes
     $commande = new Commande($db);
     $commande->fetch($commande_id);
     $commande->fetch_lines();
-    
-    // Créer un mapping des IDs de lignes vers les libellés de produits
+
+    // 1. Construire la structure des sections (comme dans colisage_tab.php)
+    $sections = array();
+    $current_section = null;
+    $produits_avant_premier_titre = array();
+
+    foreach ($commande->lines as $line) {
+        // Détecter les titres de section (Service ID=361)
+        if ($line->fk_product == 361 && $line->product_type == 1) {
+            // Sauvegarder la section précédente
+            if ($current_section !== null) {
+                $sections[] = $current_section;
+            }
+
+            // Récupérer le titre
+            $ref_chantier = '';
+            if (!empty($line->array_options['options_ref_chantier'])) {
+                $ref_chantier = $line->array_options['options_ref_chantier'];
+            }
+
+            $titre_affiche = !empty($ref_chantier) ? $ref_chantier : (!empty($line->desc) ? $line->desc : (!empty($line->description) ? $line->description : ''));
+
+            // Créer nouvelle section
+            $current_section = array(
+                'titre' => $titre_affiche,
+                'produits' => array() // rowid => product_name
+            );
+
+            continue;
+        }
+
+        // Traiter les produits physiques
+        if (empty($line->product_type) || $line->product_type == 0) {
+            $product_name = $line->product_label ?: $line->label;
+
+            if ($current_section !== null) {
+                $current_section['produits'][$line->rowid] = $product_name;
+            } else {
+                $produits_avant_premier_titre[$line->rowid] = $product_name;
+            }
+        }
+    }
+
+    // Sauvegarder la dernière section
+    if ($current_section !== null) {
+        $sections[] = $current_section;
+    }
+
+    // 2. Mapper chaque commandedet_id vers sa section_index
+    $commandedet_to_section = array(); // commandedet_id => section_index (-1 = avant premier titre, null = libre)
+
+    foreach ($produits_avant_premier_titre as $rowid => $name) {
+        $commandedet_to_section[$rowid] = -1;
+    }
+
+    foreach ($sections as $section_index => $section) {
+        foreach ($section['produits'] as $rowid => $name) {
+            $commandedet_to_section[$rowid] = $section_index;
+        }
+    }
+
+    // 3. Classifier les colis par section (et détecter Multi-Ref)
+    $packages_by_section = array();
+    $packages_by_section[-1] = array(); // Produits avant le premier titre
+    $packages_by_section['multi_ref'] = array(); // Colis multi-sections
+
+    foreach ($sections as $index => $section) {
+        $packages_by_section[$index] = array();
+    }
+
+    foreach ($packages as $pkg) {
+        if (empty($pkg->items)) {
+            continue;
+        }
+
+        // Déterminer toutes les sections de ce colis
+        $sections_in_package = array();
+
+        foreach ($pkg->items as $item) {
+            if ($item->isFree()) {
+                // Produit libre → pas de section
+                $sections_in_package[] = null;
+            } else {
+                $section_index = isset($commandedet_to_section[$item->fk_commandedet])
+                    ? $commandedet_to_section[$item->fk_commandedet]
+                    : null;
+
+                if ($section_index !== null && !in_array($section_index, $sections_in_package)) {
+                    $sections_in_package[] = $section_index;
+                }
+            }
+        }
+
+        // Enlever les null
+        $sections_in_package = array_filter($sections_in_package, function($s) { return $s !== null; });
+        $sections_in_package = array_unique($sections_in_package);
+
+        // Si plusieurs sections → Multi-Ref
+        if (count($sections_in_package) > 1) {
+            $packages_by_section['multi_ref'][] = $pkg;
+        } elseif (count($sections_in_package) == 1) {
+            $section_index = reset($sections_in_package);
+            $packages_by_section[$section_index][] = $pkg;
+        }
+        // Si aucune section (produits libres) → ignorer pour l'instant
+    }
+
+    // 4. Générer le HTML avec la hiérarchie Titre > Produit > Colis
+    $html = '';
+
+    // Créer mapping product_names pour tous les produits
     $product_names = array();
     foreach ($commande->lines as $line) {
         $product_names[$line->rowid] = $line->product_label ?: $line->label;
     }
-    
-    // Séparer les colis en deux catégories :
-    // 1. Colis avec items d'UN SEUL produit (à regrouper)
-    // 2. Colis avec items de PLUSIEURS produits différents (à afficher séparément)
-    
-    $single_product_packages = array(); // [ productName => [ packages... ] ]
-    $multi_product_packages = array();
-    
-    foreach ($packages as $pkg) {
-        if (empty($pkg->items)) {
-            continue; // Skip empty packages
-        }
-        
-        // Déterminer tous les produits différents dans ce colis
-        $productKeys = array();
-        foreach ($pkg->items as $item) {
-            if ($item->isFree()) {
-                $productKey = $item->custom_name;
-            } else {
-                $productKey = isset($product_names[$item->fk_commandedet]) 
-                    ? $product_names[$item->fk_commandedet] 
-                    : 'Produit ID:' . $item->fk_commandedet;
-            }
-            
-            if (!in_array($productKey, $productKeys)) {
-                $productKeys[] = $productKey;
-            }
-        }
-        
-        // Si un seul produit différent → regrouper
-        if (count($productKeys) == 1) {
-            $productKey = $productKeys[0];
-            
-            // Initialiser le tableau pour ce produit si nécessaire
-            if (!isset($single_product_packages[$productKey])) {
-                $single_product_packages[$productKey] = array();
-            }
-            
-            // Ajouter le colis au groupe
-            $single_product_packages[$productKey][] = $pkg;
-            
-        } else {
-            // Plusieurs produits différents → garder séparé
-            $multi_product_packages[] = $pkg;
+
+    // Afficher les sections dans l'ordre
+    $displayed_sections = array();
+
+    // Produits avant le premier titre (si présents)
+    if (!empty($packages_by_section[-1])) {
+        $displayed_sections[] = array('index' => -1, 'titre' => null, 'packages' => $packages_by_section[-1]);
+    }
+
+    // Sections avec titres
+    foreach ($sections as $index => $section) {
+        if (!empty($packages_by_section[$index])) {
+            $displayed_sections[] = array('index' => $index, 'titre' => $section['titre'], 'packages' => $packages_by_section[$index]);
         }
     }
-    
-    $html = '';
-    
-    // 1. Afficher les colis avec items d'un seul produit, regroupés
-    foreach ($single_product_packages as $productName => $pkgs) {
-        // Afficher le nom du produit une seule fois
-        $html .= '-' . $productName . '<br>';
-        
-        // Afficher tous les colis de ce produit
-        foreach ($pkgs as $pkg) {
-            // NOUVEAU : Ajouter une case à cocher avant le multiplicateur
-            $checkbox = '[ ] '; // Case à cocher vide (U+2610)
-            
-            // Formater le multiplicateur
-            $multiplier_text = '';
-            if ($pkg->multiplier > 1) {
-                $multiplier_text = '<strong>' . $pkg->multiplier . ' colis de </strong>';
-            } else {
-                $multiplier_text = '<strong>1 colis de </strong>';
-            }
-            
-            // Afficher tous les items de ce colis
-            foreach ($pkg->items as $item_index => $item) {
-                // Pour le premier item : checkbox + multiplicateur + détails
-                // Pour les items suivants : "+" + détails (sans checkbox)
-                $line_prefix = '';
-                if ($item_index == 0) {
-                    $line_prefix = $checkbox . $multiplier_text;
-                } else {
-                    $line_prefix = '&nbsp;&nbsp;+ '; // Indentation pour aligner avec le premier item
-                }
-                
-                // Formater les dimensions et surface
-                $dimensions = '';
-                $surface = '';
-                
-                if ($item->largeur && $item->largeur > 0) {
-                    // Produit avec longueur ET largeur → dimensions et surface en m²
-                    $dimensions = $item->quantity . ' × ' . $item->longueur . '×' . $item->largeur;
-                    $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
-                    $surface = '<strong>' . number_format($surface_value, 2) . ' m²</strong>';
-                } elseif ($item->longueur && $item->longueur > 0) {
-                    // Produit avec longueur seulement → dimensions et longueur en ml
-                    $dimensions = $item->quantity . ' × ' . $item->longueur;
-                    $length_value = ($item->quantity * $item->longueur) / 1000;
-                    $surface = '<strong>' . number_format($length_value, 2) . ' ml</strong>';
-                } else {
-                    // Produit sans dimensions → juste quantité
-                    $dimensions = $item->quantity . ' unités';
-                    $surface = '<strong>' . $item->quantity . ' u</strong>';
-                }
-                
-                // Description
-                $description = $item->description ?: '';
-                
-                // Ligne de colis
-                $html .= $line_prefix . $dimensions . ' ' . $surface . ' ' . $description . '<br>';
-            }
-        }
-        
-        // Saut de ligne après chaque groupe de produit
-        $html .= '<br>';
+
+    // Multi-Ref (si présents)
+    if (!empty($packages_by_section['multi_ref'])) {
+        $displayed_sections[] = array('index' => 'multi_ref', 'titre' => 'Multi Ref', 'packages' => $packages_by_section['multi_ref']);
     }
-    
-    // 2. Afficher les colis multi-produits (format traditionnel avec checkboxes)
-    foreach ($multi_product_packages as $pkg_index => $pkg) {
-        // NOUVEAU : Ajouter une case à cocher avant l'en-tête du colis
-        $checkbox = '[ ] '; // Case à cocher vide (U+2610)
-        
-        // En-tête du colis avec multiplicateur
-        if ($pkg->multiplier > 1) {
-            $html .= $checkbox . '<strong>' . $pkg->multiplier . ' colis de</strong><br>';
-        } else {
-            $html .= $checkbox . '<strong>1 colis de</strong><br>';
+
+    // Pour chaque section
+    foreach ($displayed_sections as $section_data) {
+        // Afficher le titre de section si présent
+        if ($section_data['titre']) {
+            $html .= '<strong style="font-size: 1.1em; color: #667eea;">📋 ' . htmlspecialchars($section_data['titre']) . '</strong><br>';
         }
-        
-        // Regrouper les items par produit
-        $grouped_items = array();
-        
-        foreach ($pkg->items as $item) {
-            // Récupérer le nom du produit
-            if ($item->isFree()) {
-                $productKey = $item->custom_name;
-            } else {
-                $productKey = isset($product_names[$item->fk_commandedet]) 
-                    ? $product_names[$item->fk_commandedet] 
-                    : 'Produit ID:' . $item->fk_commandedet;
+
+        // Regrouper les colis par produit dans cette section
+        $packages_by_product = array();
+
+        foreach ($section_data['packages'] as $pkg) {
+            // Pour chaque item dans le colis
+            foreach ($pkg->items as $item) {
+                if ($item->isFree()) {
+                    $product_key = $item->custom_name;
+                } else {
+                    $product_key = isset($product_names[$item->fk_commandedet])
+                        ? $product_names[$item->fk_commandedet]
+                        : 'Produit ID:' . $item->fk_commandedet;
+                }
+
+                if (!isset($packages_by_product[$product_key])) {
+                    $packages_by_product[$product_key] = array();
+                }
+
+                // Vérifier si ce colis n'est pas déjà dans la liste pour ce produit
+                $already_added = false;
+                foreach ($packages_by_product[$product_key] as $existing_pkg) {
+                    if ($existing_pkg->rowid == $pkg->rowid) {
+                        $already_added = true;
+                        break;
+                    }
+                }
+
+                if (!$already_added) {
+                    $packages_by_product[$product_key][] = $pkg;
+                }
             }
-            
-            // Initialiser le groupe si nécessaire
-            if (!isset($grouped_items[$productKey])) {
-                $grouped_items[$productKey] = array();
-            }
-            
-            // Ajouter l'item au groupe
-            $grouped_items[$productKey][] = $item;
         }
-        
+
         // Afficher chaque groupe de produits
-        foreach ($grouped_items as $productName => $items) {
-            // Afficher le nom du produit (avec indentation)
-            $html .= '&nbsp;&nbsp;-' . $productName . '<br>';
-            
-            // Afficher tous les détails de ce produit
-            foreach ($items as $item) {
-                // Formater les dimensions et surface
-                $dimensions = '';
-                $surface = '';
-                
-                if ($item->largeur && $item->largeur > 0) {
-                    // Produit avec longueur ET largeur → dimensions et surface en m²
-                    $dimensions = $item->quantity . ' × ' . $item->longueur . '×' . $item->largeur;
-                    $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
-                    $surface = '<strong>' . number_format($surface_value, 2) . ' m²</strong>';
-                } elseif ($item->longueur && $item->longueur > 0) {
-                    // Produit avec longueur seulement → dimensions et longueur en ml
-                    $dimensions = $item->quantity . ' × ' . $item->longueur;
-                    $length_value = ($item->quantity * $item->longueur) / 1000;
-                    $surface = '<strong>' . number_format($length_value, 2) . ' ml</strong>';
+        foreach ($packages_by_product as $product_name => $pkgs) {
+            // Afficher le nom du produit
+            $html .= '&nbsp;&nbsp;<span style="color: #48bb78;">📦 ' . htmlspecialchars($product_name) . '</span><br>';
+
+            // Afficher tous les colis de ce produit
+            foreach ($pkgs as $pkg) {
+                $checkbox = '[ ] ';
+
+                // Formater le multiplicateur
+                if ($pkg->multiplier > 1) {
+                    $multiplier_text = '<strong>' . $pkg->multiplier . ' colis de </strong>';
                 } else {
-                    // Produit sans dimensions → juste quantité
-                    $dimensions = $item->quantity . ' unités';
-                    $surface = '<strong>' . $item->quantity . ' u</strong>';
+                    $multiplier_text = '<strong>1 colis de </strong>';
                 }
-                
-                // Description
-                $description = $item->description ?: '';
-                
-                // Ligne de détail (sans le nom du produit, avec indentation)
-                $html .= '&nbsp;&nbsp;' . $dimensions . ' ' . $surface . ' ' . $description . '<br>';
+
+                // Afficher tous les items de ce colis
+                foreach ($pkg->items as $item_index => $item) {
+                    if ($item_index == 0) {
+                        $line_prefix = '&nbsp;&nbsp;&nbsp;&nbsp;' . $checkbox . $multiplier_text;
+                    } else {
+                        $line_prefix = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ ';
+                    }
+
+                    // Formater les dimensions et surface
+                    $dimensions = '';
+                    $surface = '';
+
+                    if ($item->largeur && $item->largeur > 0) {
+                        $dimensions = $item->quantity . ' × ' . $item->longueur . '×' . $item->largeur;
+                        $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
+                        $surface = '<strong>' . number_format($surface_value, 2) . ' m²</strong>';
+                    } elseif ($item->longueur && $item->longueur > 0) {
+                        $dimensions = $item->quantity . ' × ' . $item->longueur;
+                        $length_value = ($item->quantity * $item->longueur) / 1000;
+                        $surface = '<strong>' . number_format($length_value, 2) . ' ml</strong>';
+                    } else {
+                        $dimensions = $item->quantity . ' unités';
+                        $surface = '<strong>' . $item->quantity . ' u</strong>';
+                    }
+
+                    $description = $item->description ?: '';
+                    $html .= $line_prefix . $dimensions . ' ' . $surface . ' ' . $description . '<br>';
+                }
             }
         }
-        
-        // Ajouter saut de ligne après chaque colis multi-produits
-        $html .= '<br>';
+
+        $html .= '<br>'; // Saut de ligne après chaque section
     }
-    
+
     // Supprimer le dernier <br> s'il existe
     $html = rtrim($html, '<br>');
-    
+
     return $html;
 }
