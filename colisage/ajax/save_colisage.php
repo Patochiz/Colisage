@@ -412,6 +412,8 @@ function generateColisageHtmlList($commande_id, $db) {
     $package = new ColisagePackage($db);
     $packages = $package->fetchByCommande($commande_id);
 
+    debugLog("generateColisageHtmlList - Nombre de colis chargés", count($packages));
+
     if (empty($packages)) {
         return '';
     }
@@ -556,6 +558,11 @@ function generateColisageHtmlList($commande_id, $db) {
         $displayed_sections[] = array('index' => 'multi_ref', 'titre' => 'Multi Ref', 'packages' => $packages_by_section['multi_ref']);
     }
 
+    debugLog("generateColisageHtmlList - Nombre de sections affichées", count($displayed_sections));
+    foreach ($displayed_sections as $idx => $sec) {
+        debugLog("Section {$idx}", "Titre: " . ($sec['titre'] ?: 'NULL') . ", Colis: " . count($sec['packages']));
+    }
+
     // Pour chaque section
     foreach ($displayed_sections as $section_data) {
         // Afficher le titre de section si présent
@@ -598,6 +605,8 @@ function generateColisageHtmlList($commande_id, $db) {
 
         // Afficher chaque groupe de produits
         foreach ($packages_by_product as $product_name => $pkgs) {
+            debugLog("Produit: {$product_name}", "Nombre de colis: " . count($pkgs));
+
             // Afficher le nom du produit
             $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
 
@@ -623,8 +632,11 @@ function generateColisageHtmlList($commande_id, $db) {
 
                 // Si aucun item ne correspond, passer au colis suivant
                 if (empty($filtered_items)) {
+                    debugLog("Colis ignoré (aucun item filtré)", "Colis ID: {$pkg->rowid}");
                     continue;
                 }
+
+                debugLog("Colis affiché", "Colis ID: {$pkg->rowid}, Items: " . count($filtered_items));
 
                 // Formater le multiplicateur
                 if ($pkg->multiplier > 1) {
