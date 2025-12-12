@@ -574,7 +574,7 @@ function generateColisageHtmlList($commande_id, $db) {
         $packages_by_product = array();
 
         foreach ($section_data['packages'] as $pkg) {
-            debugLog("Traitement du colis", "ID: {$pkg->rowid}, Items: " . count($pkg->items));
+            debugLog("Traitement du colis", "ID: {$pkg->id}, Items: " . count($pkg->items));
 
             // Pour chaque item dans le colis
             foreach ($pkg->items as $item) {
@@ -595,7 +595,7 @@ function generateColisageHtmlList($commande_id, $db) {
                 // Vérifier si ce colis n'est pas déjà dans la liste pour ce produit
                 $already_added = false;
                 foreach ($packages_by_product[$product_key] as $existing_pkg) {
-                    if ($existing_pkg->rowid == $pkg->rowid) {
+                    if ($existing_pkg->id == $pkg->id) {
                         $already_added = true;
                         break;
                     }
@@ -639,11 +639,11 @@ function generateColisageHtmlList($commande_id, $db) {
 
                 // Si aucun item ne correspond, passer au colis suivant
                 if (empty($filtered_items)) {
-                    debugLog("Colis ignoré (aucun item filtré)", "Colis ID: {$pkg->rowid}");
+                    debugLog("Colis ignoré (aucun item filtré)", "Colis ID: {$pkg->id}");
                     continue;
                 }
 
-                debugLog("Colis affiché", "Colis ID: {$pkg->rowid}, Items: " . count($filtered_items));
+                debugLog("Colis affiché", "Colis ID: {$pkg->id}, Items: " . count($filtered_items));
 
                 // Formater le multiplicateur
                 if ($pkg->multiplier > 1) {
