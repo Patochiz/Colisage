@@ -574,6 +574,8 @@ function generateColisageHtmlList($commande_id, $db) {
         $packages_by_product = array();
 
         foreach ($section_data['packages'] as $pkg) {
+            debugLog("Traitement du colis", "ID: {$pkg->rowid}, Items: " . count($pkg->items));
+
             // Pour chaque item dans le colis
             foreach ($pkg->items as $item) {
                 if ($item->isFree()) {
@@ -583,6 +585,8 @@ function generateColisageHtmlList($commande_id, $db) {
                         ? $product_names[$item->fk_commandedet]
                         : 'Produit ID:' . $item->fk_commandedet;
                 }
+
+                debugLog("  Item", "fk_commandedet: {$item->fk_commandedet}, Produit: {$product_key}");
 
                 if (!isset($packages_by_product[$product_key])) {
                     $packages_by_product[$product_key] = array();
@@ -599,6 +603,9 @@ function generateColisageHtmlList($commande_id, $db) {
 
                 if (!$already_added) {
                     $packages_by_product[$product_key][] = $pkg;
+                    debugLog("  Colis ajouté au produit", $product_key);
+                } else {
+                    debugLog("  Colis déjà présent pour ce produit", $product_key);
                 }
             }
         }
