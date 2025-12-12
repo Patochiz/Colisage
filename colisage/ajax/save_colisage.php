@@ -657,7 +657,8 @@ function generateColisageHtmlList($commande_id, $db) {
                     if ($item_index == 0) {
                         $line_prefix = '---' . $multiplier_text;
                     } else {
-                        $line_prefix = '---+ ';
+                        // 18 espaces pour aligner les détails verticalement
+                        $line_prefix = str_repeat('&nbsp;', 18);
                     }
 
                     // Formater les dimensions et surface
