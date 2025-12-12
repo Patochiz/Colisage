@@ -603,6 +603,29 @@ function generateColisageHtmlList($commande_id, $db) {
 
             // Afficher tous les colis de ce produit
             foreach ($pkgs as $pkg) {
+                // Filtrer les items pour ne garder que ceux qui correspondent au produit actuel
+                $filtered_items = array();
+                foreach ($pkg->items as $item) {
+                    $item_product_name = '';
+                    if ($item->isFree()) {
+                        $item_product_name = $item->custom_name;
+                    } else {
+                        $item_product_name = isset($product_names[$item->fk_commandedet])
+                            ? $product_names[$item->fk_commandedet]
+                            : 'Produit ID:' . $item->fk_commandedet;
+                    }
+
+                    // Ne garder que les items qui correspondent au produit actuel
+                    if ($item_product_name === $product_name) {
+                        $filtered_items[] = $item;
+                    }
+                }
+
+                // Si aucun item ne correspond, passer au colis suivant
+                if (empty($filtered_items)) {
+                    continue;
+                }
+
                 // Formater le multiplicateur
                 if ($pkg->multiplier > 1) {
                     $multiplier_text = '<strong>' . $pkg->multiplier . ' colis de </strong>';
@@ -610,8 +633,8 @@ function generateColisageHtmlList($commande_id, $db) {
                     $multiplier_text = '<strong>1 colis de </strong>';
                 }
 
-                // Afficher tous les items de ce colis
-                foreach ($pkg->items as $item_index => $item) {
+                // Afficher les items filtrés de ce colis
+                foreach ($filtered_items as $item_index => $item) {
                     if ($item_index == 0) {
                         $line_prefix = '---' . $multiplier_text;
                     } else {
