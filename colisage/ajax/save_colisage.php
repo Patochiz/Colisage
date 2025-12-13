@@ -615,10 +615,10 @@ function generateColisageHtmlList($commande_id, $db) {
             debugLog("Produit: {$product_name}", "Nombre de colis: " . count($pkgs));
 
             // Afficher le nom du produit
-            $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
+            $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br><br>';
 
             // Début du tableau pour ce produit (compact)
-            $html .= '<table style="border-collapse: collapse; margin-left: 20px; font-size: 0.85em; width: auto;">';
+            $html .= '<table style="border-collapse: collapse; margin-left: 20px; font-size: 0.85em; width: auto; display: block;">';
 
             // Afficher tous les colis de ce produit
             foreach ($pkgs as $pkg) {
