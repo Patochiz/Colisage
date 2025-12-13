@@ -617,8 +617,8 @@ function generateColisageHtmlList($commande_id, $db) {
             // Afficher le nom du produit
             $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
 
-            // Début du tableau pour ce produit
-            $html .= '<table style="border-collapse: collapse; margin-left: 20px; font-size: 0.9em;">';
+            // Début du tableau pour ce produit (compact)
+            $html .= '<table style="border-collapse: collapse; margin-left: 20px; font-size: 0.85em; width: auto;">';
 
             // Afficher tous les colis de ce produit
             foreach ($pkgs as $pkg) {
@@ -654,43 +654,43 @@ function generateColisageHtmlList($commande_id, $db) {
 
                     // Colonne 1: Nombre de colis (seulement sur la première ligne)
                     if ($item_index == 0) {
-                        $html .= '<td style="padding: 2px 8px; text-align: right; vertical-align: top;"><strong>' . $pkg->multiplier . '</strong></td>';
-                        $html .= '<td style="padding: 2px 8px; white-space: nowrap;">colis de</td>';
+                        $html .= '<td style="padding: 1px 4px; text-align: right; vertical-align: top; white-space: nowrap;"><strong>' . $pkg->multiplier . '</strong></td>';
+                        $html .= '<td style="padding: 1px 4px; white-space: nowrap;">colis de</td>';
                     } else {
-                        $html .= '<td style="padding: 2px 8px;"></td>';
-                        $html .= '<td style="padding: 2px 8px; text-align: center;">+</td>';
+                        $html .= '<td style="padding: 1px 4px;"></td>';
+                        $html .= '<td style="padding: 1px 4px; text-align: center;">+</td>';
                     }
 
                     // Colonne 3: Nombre
-                    $html .= '<td style="padding: 2px 8px; text-align: right;">' . $item->quantity . '</td>';
-                    $html .= '<td style="padding: 2px 4px;">×</td>';
+                    $html .= '<td style="padding: 1px 4px; text-align: right; white-space: nowrap;">' . $item->quantity . '</td>';
+                    $html .= '<td style="padding: 1px 2px;">×</td>';
 
                     // Colonne 4: Longueur
-                    $html .= '<td style="padding: 2px 8px; text-align: right;">' . $item->longueur . '</td>';
+                    $html .= '<td style="padding: 1px 4px; text-align: right; white-space: nowrap;">' . $item->longueur . '</td>';
 
                     // Colonne 5: Largeur (si présente)
                     if ($item->largeur && $item->largeur > 0) {
-                        $html .= '<td style="padding: 2px 4px;">×</td>';
-                        $html .= '<td style="padding: 2px 8px; text-align: right;">' . $item->largeur . '</td>';
+                        $html .= '<td style="padding: 1px 2px;">×</td>';
+                        $html .= '<td style="padding: 1px 4px; text-align: right; white-space: nowrap;">' . $item->largeur . '</td>';
                     } else {
-                        $html .= '<td style="padding: 2px 4px;"></td>';
-                        $html .= '<td style="padding: 2px 8px;"></td>';
+                        $html .= '<td style="padding: 1px 2px;"></td>';
+                        $html .= '<td style="padding: 1px 4px;"></td>';
                     }
 
                     // Colonne 6: Quantité totale
                     if ($item->largeur && $item->largeur > 0) {
                         $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
-                        $html .= '<td style="padding: 2px 8px; text-align: right;"><strong>' . number_format($surface_value, 2) . ' m²</strong></td>';
+                        $html .= '<td style="padding: 1px 4px; text-align: right; white-space: nowrap;"><strong>' . number_format($surface_value, 2) . ' m²</strong></td>';
                     } elseif ($item->longueur && $item->longueur > 0) {
                         $length_value = ($item->quantity * $item->longueur) / 1000;
-                        $html .= '<td style="padding: 2px 8px; text-align: right;"><strong>' . number_format($length_value, 2) . ' ml</strong></td>';
+                        $html .= '<td style="padding: 1px 4px; text-align: right; white-space: nowrap;"><strong>' . number_format($length_value, 2) . ' ml</strong></td>';
                     } else {
-                        $html .= '<td style="padding: 2px 8px; text-align: right;"><strong>' . $item->quantity . ' u</strong></td>';
+                        $html .= '<td style="padding: 1px 4px; text-align: right; white-space: nowrap;"><strong>' . $item->quantity . ' u</strong></td>';
                     }
 
                     // Colonne 7: Référence
                     $description = $item->description ?: '';
-                    $html .= '<td style="padding: 2px 8px;">' . htmlspecialchars($description) . '</td>';
+                    $html .= '<td style="padding: 1px 4px; white-space: nowrap;">' . htmlspecialchars($description) . '</td>';
 
                     $html .= '</tr>';
                 }
