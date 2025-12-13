@@ -573,6 +573,11 @@ function generateColisageHtmlList($commande_id, $db) {
     foreach ($displayed_sections as $section_data) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
+            // Vérifier si on doit insérer un séparateur AVANT le titre
+            if ($line_count >= $next_separator_at) {
+                $html .= '<hr /><br />';
+                $next_separator_at += $next_separators;
+            }
             $html .= '<strong style="font-size: 1.1em; color: #667eea;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
             $line_count++;
         }
@@ -621,12 +626,17 @@ function generateColisageHtmlList($commande_id, $db) {
         foreach ($packages_by_product as $product_name => $pkgs) {
             debugLog("Produit: {$product_name}", "Nombre de colis: " . count($pkgs));
 
+            // Vérifier si on doit insérer un séparateur AVANT le nom du produit
+            if ($line_count >= $next_separator_at) {
+                $html .= '<hr /><br />';
+                $next_separator_at += $next_separators;
+            }
+
             // Afficher le nom du produit
             $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
             $line_count++;
 
             // Afficher tous les colis de ce produit
-            $separator_inserted_in_product = false;
             foreach ($pkgs as $pkg) {
                 // Filtrer les items pour ne garder que ceux qui correspondent au produit actuel
                 $filtered_items = array();
@@ -663,11 +673,10 @@ function generateColisageHtmlList($commande_id, $db) {
 
                 // Afficher les items filtrés de ce colis
                 foreach ($filtered_items as $item_index => $item) {
-                    // Vérifier si on doit insérer un séparateur dans la liste (si dépassement)
+                    // Vérifier si on doit insérer un séparateur AVANT cette ligne
                     if ($line_count >= $next_separator_at) {
                         $html .= '<hr /><br />';
                         $next_separator_at += $next_separators;
-                        $separator_inserted_in_product = true;
                     }
 
                     if ($item_index == 0) {
@@ -698,13 +707,6 @@ function generateColisageHtmlList($commande_id, $db) {
                     $html .= $line_prefix . $dimensions . ' ' . $surface . ' ' . $description . '<br>';
                     $line_count++;
                 }
-            }
-
-            // Vérifier si on doit insérer un séparateur après ce produit
-            // (uniquement si on n'en a pas déjà inséré dans la liste du produit)
-            if (!$separator_inserted_in_product && $line_count >= $next_separator_at) {
-                $html .= '<hr /><br />';
-                $next_separator_at += $next_separators;
             }
         }
 
