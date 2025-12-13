@@ -563,11 +563,18 @@ function generateColisageHtmlList($commande_id, $db) {
         debugLog("Section {$idx}", "Titre: " . ($sec['titre'] ?: 'NULL') . ", Colis: " . count($sec['packages']));
     }
 
+    // Compteur de lignes pour la pagination
+    $line_count = 0;
+    $first_separator = 40;  // Premier séparateur après 40 lignes
+    $next_separators = 60;   // Suivants tous les 60 lignes
+    $next_separator_at = $first_separator;
+
     // Pour chaque section
     foreach ($displayed_sections as $section_data) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
             $html .= '<strong style="font-size: 1.1em; color: #667eea;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
+            $line_count++;
         }
 
         // Regrouper les colis par produit dans cette section
@@ -616,8 +623,10 @@ function generateColisageHtmlList($commande_id, $db) {
 
             // Afficher le nom du produit
             $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
+            $line_count++;
 
             // Afficher tous les colis de ce produit
+            $separator_inserted_in_product = false;
             foreach ($pkgs as $pkg) {
                 // Filtrer les items pour ne garder que ceux qui correspondent au produit actuel
                 $filtered_items = array();
@@ -654,6 +663,13 @@ function generateColisageHtmlList($commande_id, $db) {
 
                 // Afficher les items filtrés de ce colis
                 foreach ($filtered_items as $item_index => $item) {
+                    // Vérifier si on doit insérer un séparateur dans la liste (si dépassement)
+                    if ($line_count >= $next_separator_at) {
+                        $html .= '<hr /><br />';
+                        $next_separator_at += $next_separators;
+                        $separator_inserted_in_product = true;
+                    }
+
                     if ($item_index == 0) {
                         $line_prefix = '---' . $multiplier_text;
                     } else {
@@ -680,7 +696,15 @@ function generateColisageHtmlList($commande_id, $db) {
 
                     $description = $item->description ?: '';
                     $html .= $line_prefix . $dimensions . ' ' . $surface . ' ' . $description . '<br>';
+                    $line_count++;
                 }
+            }
+
+            // Vérifier si on doit insérer un séparateur après ce produit
+            // (uniquement si on n'en a pas déjà inséré dans la liste du produit)
+            if (!$separator_inserted_in_product && $line_count >= $next_separator_at) {
+                $html .= '<hr /><br />';
+                $next_separator_at += $next_separators;
             }
         }
 
