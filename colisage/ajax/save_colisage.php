@@ -617,6 +617,9 @@ function generateColisageHtmlList($commande_id, $db) {
             // Afficher le nom du produit
             $html .= '<span style="color: #48bb78;">--' . htmlspecialchars($product_name) . '</span><br>';
 
+            // Début du tableau pour ce produit
+            $html .= '<table style="border-collapse: collapse; margin-left: 20px; font-size: 0.9em;">';
+
             // Afficher tous les colis de ce produit
             foreach ($pkgs as $pkg) {
                 // Filtrer les items pour ne garder que ceux qui correspondent au produit actuel
@@ -645,43 +648,56 @@ function generateColisageHtmlList($commande_id, $db) {
 
                 debugLog("Colis affiché", "Colis ID: {$pkg->id}, Items: " . count($filtered_items));
 
-                // Formater le multiplicateur
-                if ($pkg->multiplier > 1) {
-                    $multiplier_text = '<strong>' . $pkg->multiplier . ' colis de </strong>';
-                } else {
-                    $multiplier_text = '<strong>1 colis de </strong>';
-                }
-
                 // Afficher les items filtrés de ce colis
                 foreach ($filtered_items as $item_index => $item) {
+                    $html .= '<tr>';
+
+                    // Colonne 1: Nombre de colis (seulement sur la première ligne)
                     if ($item_index == 0) {
-                        $line_prefix = '---' . $multiplier_text;
+                        $html .= '<td style="padding: 2px 8px; text-align: right; vertical-align: top;"><strong>' . $pkg->multiplier . '</strong></td>';
+                        $html .= '<td style="padding: 2px 8px; white-space: nowrap;">colis de</td>';
                     } else {
-                        // 18 espaces + "+" pour aligner les détails verticalement
-                        $line_prefix = str_repeat('&nbsp;', 18) . '+ ';
+                        $html .= '<td style="padding: 2px 8px;"></td>';
+                        $html .= '<td style="padding: 2px 8px; text-align: center;">+</td>';
                     }
 
-                    // Formater les dimensions et surface
-                    $dimensions = '';
-                    $surface = '';
+                    // Colonne 3: Nombre
+                    $html .= '<td style="padding: 2px 8px; text-align: right;">' . $item->quantity . '</td>';
+                    $html .= '<td style="padding: 2px 4px;">×</td>';
 
+                    // Colonne 4: Longueur
+                    $html .= '<td style="padding: 2px 8px; text-align: right;">' . $item->longueur . '</td>';
+
+                    // Colonne 5: Largeur (si présente)
                     if ($item->largeur && $item->largeur > 0) {
-                        $dimensions = $item->quantity . ' × ' . $item->longueur . '×' . $item->largeur;
-                        $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
-                        $surface = '<strong>' . number_format($surface_value, 2) . ' m²</strong>';
-                    } elseif ($item->longueur && $item->longueur > 0) {
-                        $dimensions = $item->quantity . ' × ' . $item->longueur;
-                        $length_value = ($item->quantity * $item->longueur) / 1000;
-                        $surface = '<strong>' . number_format($length_value, 2) . ' ml</strong>';
+                        $html .= '<td style="padding: 2px 4px;">×</td>';
+                        $html .= '<td style="padding: 2px 8px; text-align: right;">' . $item->largeur . '</td>';
                     } else {
-                        $dimensions = $item->quantity . ' unités';
-                        $surface = '<strong>' . $item->quantity . ' u</strong>';
+                        $html .= '<td style="padding: 2px 4px;"></td>';
+                        $html .= '<td style="padding: 2px 8px;"></td>';
                     }
 
+                    // Colonne 6: Quantité totale
+                    if ($item->largeur && $item->largeur > 0) {
+                        $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
+                        $html .= '<td style="padding: 2px 8px; text-align: right;"><strong>' . number_format($surface_value, 2) . ' m²</strong></td>';
+                    } elseif ($item->longueur && $item->longueur > 0) {
+                        $length_value = ($item->quantity * $item->longueur) / 1000;
+                        $html .= '<td style="padding: 2px 8px; text-align: right;"><strong>' . number_format($length_value, 2) . ' ml</strong></td>';
+                    } else {
+                        $html .= '<td style="padding: 2px 8px; text-align: right;"><strong>' . $item->quantity . ' u</strong></td>';
+                    }
+
+                    // Colonne 7: Référence
                     $description = $item->description ?: '';
-                    $html .= $line_prefix . $dimensions . ' ' . $surface . ' ' . $description . '<br>';
+                    $html .= '<td style="padding: 2px 8px;">' . htmlspecialchars($description) . '</td>';
+
+                    $html .= '</tr>';
                 }
             }
+
+            // Fin du tableau
+            $html .= '</table>';
         }
 
         $html .= '<br>'; // Saut de ligne après chaque section
