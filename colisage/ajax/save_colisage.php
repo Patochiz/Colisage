@@ -633,7 +633,7 @@ function generateColisageHtmlList($commande_id, $db) {
             }
 
             // Afficher le nom du produit
-            $html .= '<span style="color: #000000;">' . htmlspecialchars($product_name) . '</span><br>';
+            $html .= '<span style="color: #000000; font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
             $line_count += 2;  // Les noms de produits comptent pour 2 lignes (souvent longs)
 
             // Afficher tous les colis de ce produit
