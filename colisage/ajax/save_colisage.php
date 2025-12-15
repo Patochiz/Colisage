@@ -566,7 +566,7 @@ function generateColisageHtmlList($commande_id, $db) {
     // Compteur de lignes pour la pagination
     $line_count = 0;
     $first_separator = 40;  // Premier séparateur après 40 lignes
-    $next_separators = 60;   // Suivants tous les 60 lignes
+    $next_separators = 50;   // Suivants tous les 50 lignes
     $next_separator_at = $first_separator;
 
     // Pour chaque section
