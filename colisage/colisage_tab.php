@@ -248,9 +248,14 @@ foreach ($object->lines as $line) {
         if (!empty($line->array_options['options_ref_chantier'])) {
             $ref_chantier = $line->array_options['options_ref_chantier'];
         }
-        
-        // Utiliser ref_chantier en priorité, sinon label de la ligne
-        $titre_affiche = !empty($ref_chantier) ? $ref_chantier : $line->label;
+
+        // Logique simplifiée : ref_chantier en priorité, sinon description de la ligne
+        if (!empty($ref_chantier)) {
+            $titre_affiche = $ref_chantier;
+        } else {
+            // Utiliser la description de la ligne (desc ou description)
+            $titre_affiche = !empty($line->desc) ? $line->desc : (!empty($line->description) ? $line->description : '');
+        }
         
         // Créer une nouvelle section
         $currentSection = array(
@@ -263,7 +268,7 @@ foreach ($object->lines as $line) {
         );
         
         if ($debug_mode) {
-            error_log("DEBUG COLISAGE - Titre de section détecté (Service ID=361): {$line->label} (ref_chantier: {$ref_chantier}, rowid: {$line->rowid})");
+            error_log("DEBUG COLISAGE - Titre de section détecté (Service ID=361): titre='{$titre_affiche}' (ref_chantier: '{$ref_chantier}', desc: '{$line->desc}', rowid: {$line->rowid})");
         }
         
         continue; // Ne pas traiter comme un produit
