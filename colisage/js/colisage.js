@@ -737,6 +737,84 @@ function getPackageSectionIndex(pkg) {
     return null; // Pas de section (colis libre probablement)
 }
 
+/**
+ * Génère le HTML pour une carte de colis
+ * @param {Object} pkg - Le colis à afficher
+ * @param {boolean} showProductNameOnItems - Si true, affiche le nom du produit sur chaque item (pour colis multi-produits)
+ */
+function renderPackageCard(pkg, showProductNameOnItems) {
+    const weightPerPackage = pkg.items.reduce((sum, item) => sum + (item.quantity * item.weight), 0);
+    const surfacePerPackage = pkg.items.reduce((sum, item) => {
+        if (item.largeur && item.largeur !== null && item.largeur > 0) {
+            return sum + (item.quantity * item.longueur * item.largeur / 1000000);
+        }
+        return sum;
+    }, 0);
+
+    const isSelected = normalizePackageId(colisageApp.selectedPackageId) === normalizePackageId(pkg.id);
+
+    let html = `
+        <div class="colis-item ${showProductNameOnItems ? 'colis-multi-product' : 'colis-under-product'} ${isSelected ? 'selected' : ''}"
+             onclick="selectPackage('${pkg.id}')"
+             data-package-id="${pkg.id}">
+            <div class="colis-item-header">
+                <div class="colis-item-left">
+                    <div class="colis-multiplier">${pkg.multiplier}×</div>
+                    ${pkg.isFree ? '<div class="colis-type-badge">LIBRE</div>' : ''}
+                    <div class="colis-title">Colis #${pkg.id}</div>
+                    <div class="colis-stats">
+                        <span>Poids: <strong>${weightPerPackage.toFixed(1)} kg</strong>/colis</span>
+                        <span>Surface: <strong>${surfacePerPackage.toFixed(2)} m²</strong>/colis</span>
+                        <span>Total: <strong>${(weightPerPackage * pkg.multiplier).toFixed(1)} kg</strong></span>
+                        <span>Articles: <strong>${pkg.items.length}</strong></span>
+                    </div>
+                </div>
+                <button class="btn-delete-colis" onclick="handleDeletePackage(event, '${pkg.id}')" title="Supprimer ce colis">×</button>
+            </div>
+    `;
+
+    if (pkg.items.length > 0) {
+        html += `<div class="colis-content">`;
+        pkg.items.forEach(item => {
+            const productName = item.productId.startsWith('prod_')
+                ? colisageApp.productData[item.productId]?.name || 'Produit inconnu'
+                : item.customName || 'Article libre';
+
+            let itemDisplay = '';
+            let surfaceDisplay = '0.00 m²';
+
+            if (item.largeur && item.largeur !== null && item.largeur > 0) {
+                itemDisplay = `${item.quantity} × ${item.longueur}×${item.largeur}`;
+                surfaceDisplay = `${(item.quantity * item.longueur * item.largeur / 1000000).toFixed(2)} m²`;
+            } else if (item.longueur && item.longueur !== null && item.longueur > 0) {
+                itemDisplay = `${item.quantity} × ${item.longueur}`;
+                surfaceDisplay = `${(item.quantity * item.longueur / 1000).toFixed(2)} ml`;
+            } else {
+                itemDisplay = `${item.quantity} unités`;
+                surfaceDisplay = `${item.quantity} u`;
+            }
+
+            html += `
+                <div class="colis-detail-item">
+                    <div class="colis-detail-left">
+                        ${showProductNameOnItems ? `<strong>${productName}</strong>` : ''}
+                    </div>
+                    <div class="colis-detail-right">
+                        <span>${itemDisplay}</span>
+                        <span class="colis-detail-surface">${surfaceDisplay}</span>
+                        <span class="colis-detail-desc">${item.description || ''}</span>
+                        ${!showProductNameOnItems ? '' : ''}
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
 function renderColisSummary() {
     const container = document.getElementById('colis-summary');
     if (!container) return;
@@ -822,16 +900,33 @@ function renderColisSummary() {
             `;
         }
 
-        // Regrouper les colis de cette section par produit
-        const packagesByProduct = new Map();
+        // Séparer les colis mono-produit et multi-produits
+        const monoProductPackages = [];  // Colis avec un seul type de produit
+        const multiProductPackages = []; // Colis avec plusieurs produits différents
 
         section.packages.forEach(pkg => {
-            // Pour chaque item dans le colis, on l'associe au produit
-            pkg.items.forEach(item => {
-                const productId = item.productId;
-                const productName = item.productId.startsWith('prod_')
-                    ? colisageApp.productData[item.productId]?.name || 'Produit inconnu'
-                    : item.customName || 'Article libre';
+            // Compter les produits différents dans ce colis
+            const uniqueProductIds = new Set(pkg.items.map(item => item.productId));
+
+            if (uniqueProductIds.size === 1) {
+                monoProductPackages.push(pkg);
+            } else {
+                multiProductPackages.push(pkg);
+            }
+        });
+
+        // 1. AFFICHER LES COLIS MONO-PRODUIT (regroupés par produit avec titre)
+        if (monoProductPackages.length > 0) {
+            // Regrouper par produit
+            const packagesByProduct = new Map();
+
+            monoProductPackages.forEach(pkg => {
+                // Prendre le premier item pour déterminer le produit
+                const firstItem = pkg.items[0];
+                const productId = firstItem.productId;
+                const productName = firstItem.productId.startsWith('prod_')
+                    ? colisageApp.productData[firstItem.productId]?.name || 'Produit inconnu'
+                    : firstItem.customName || 'Article libre';
 
                 if (!packagesByProduct.has(productId)) {
                     packagesByProduct.set(productId, {
@@ -839,97 +934,32 @@ function renderColisSummary() {
                         packages: []
                     });
                 }
-
-                // Vérifier si ce colis n'est pas déjà dans la liste pour ce produit
-                const productGroup = packagesByProduct.get(productId);
-                if (!productGroup.packages.some(p => p.id === pkg.id)) {
-                    productGroup.packages.push(pkg);
-                }
+                packagesByProduct.get(productId).packages.push(pkg);
             });
-        });
 
-        // Afficher chaque groupe de produits
-        packagesByProduct.forEach((productGroup, productId) => {
-            // Afficher le nom du produit
-            html += `
-                <div class="colis-product-titre">
-                    <div class="colis-product-titre-icon">📦</div>
-                    <div class="colis-product-titre-text">${productGroup.name}</div>
-                </div>
-            `;
-
-            // Afficher les colis contenant ce produit
-            productGroup.packages.forEach((pkg) => {
-        const weightPerPackage = pkg.items.reduce((sum, item) => sum + (item.quantity * item.weight), 0);
-        const surfacePerPackage = pkg.items.reduce((sum, item) => {
-            if (item.largeur && item.largeur !== null && item.largeur > 0) {
-                return sum + (item.quantity * item.longueur * item.largeur / 1000000);
-            }
-            return sum;
-        }, 0);
-        
-        const isSelected = normalizePackageId(colisageApp.selectedPackageId) === normalizePackageId(pkg.id);
-        
-        html += `
-            <div class="colis-item colis-under-product ${isSelected ? 'selected' : ''}" 
-                 onclick="selectPackage('${pkg.id}')" 
-                 data-package-id="${pkg.id}">
-                <div class="colis-item-header">
-                    <div class="colis-item-left">
-                        <div class="colis-multiplier">${pkg.multiplier}×</div>
-                        ${pkg.isFree ? '<div class="colis-type-badge">LIBRE</div>' : ''}
-                        <div class="colis-title">Colis #${pkg.id}</div>
-                        <div class="colis-stats">
-                            <span>Poids: <strong>${weightPerPackage.toFixed(1)} kg</strong>/colis</span>
-                            <span>Surface: <strong>${surfacePerPackage.toFixed(2)} m²</strong>/colis</span>
-                            <span>Total: <strong>${(weightPerPackage * pkg.multiplier).toFixed(1)} kg</strong></span>
-                            <span>Articles: <strong>${pkg.items.length}</strong></span>
-                        </div>
-                    </div>
-                    <button class="btn-delete-colis" onclick="handleDeletePackage(event, '${pkg.id}')" title="Supprimer ce colis">×</button>
-                </div>
-        `;
-        
-        if (pkg.items.length > 0) {
-            html += `<div class="colis-content">`;
-            pkg.items.forEach(item => {
-                const productName = item.productId.startsWith('prod_') 
-                    ? colisageApp.productData[item.productId]?.name || 'Produit inconnu'
-                    : item.customName || 'Article libre';
-                
-                let itemDisplay = '';
-                let surfaceDisplay = '0.00 m²';
-                
-                if (item.largeur && item.largeur !== null && item.largeur > 0) {
-                    itemDisplay = `${item.quantity} × ${item.longueur}×${item.largeur}`;
-                    surfaceDisplay = `${(item.quantity * item.longueur * item.largeur / 1000000).toFixed(2)} m²`;
-                } else if (item.longueur && item.longueur !== null && item.longueur > 0) {
-                    itemDisplay = `${item.quantity} × ${item.longueur}`;
-                    surfaceDisplay = `${(item.quantity * item.longueur / 1000).toFixed(2)} ml`;
-                } else {
-                    itemDisplay = `${item.quantity} unités`;
-                    surfaceDisplay = `${item.quantity} u`;
-                }
-                
+            // Afficher chaque groupe de produits
+            packagesByProduct.forEach((productGroup, productId) => {
+                // Afficher le nom du produit (titre)
                 html += `
-                    <div class="colis-detail-item">
-                        <div class="colis-detail-left">
-                            <strong>${productName}</strong>
-                        </div>
-                        <div class="colis-detail-right">
-                            <span>${itemDisplay}</span>
-                            <span class="colis-detail-surface">${surfaceDisplay}</span>
-                            <span class="colis-detail-desc">${item.description}</span>
-                        </div>
+                    <div class="colis-product-titre">
+                        <div class="colis-product-titre-icon">📦</div>
+                        <div class="colis-product-titre-text">${productGroup.name}</div>
                     </div>
                 `;
+
+                // Afficher les colis de ce produit
+                productGroup.packages.forEach((pkg) => {
+                    html += renderPackageCard(pkg, false); // false = ne pas afficher le nom du produit sur chaque item
+                });
             });
-            html += `</div>`;
         }
-        
-        html += `</div>`;
-            }); // Fin de productGroup.packages.forEach
-        }); // Fin de packagesByProduct.forEach
+
+        // 2. AFFICHER LES COLIS MULTI-PRODUITS (sans titre, avec espace avant)
+        multiProductPackages.forEach((pkg) => {
+            // Espace avant pour différencier
+            html += `<div style="margin-top: 1rem;"></div>`;
+            html += renderPackageCard(pkg, true); // true = afficher le nom du produit sur chaque item
+        });
     }); // Fin de displayedSections.forEach
 
     html += `</div>`;
