@@ -583,7 +583,8 @@ function generateColisageHtmlList($commande_id, $db) {
         }
 
         // Regrouper les colis par produit dans cette section
-        $packages_by_product = array();
+        // CORRECTION: Utiliser fk_commandedet comme clé (comme le JS) au lieu du nom
+        $packages_by_product = array(); // clé = fk_commandedet ou 'free_X', valeur = array('name' => ..., 'packages' => ...)
 
         foreach ($section_data['packages'] as $pkg) {
             debugLog("Traitement du colis", "ID: {$pkg->id}, Items: " . count($pkg->items));
@@ -591,22 +592,27 @@ function generateColisageHtmlList($commande_id, $db) {
             // Pour chaque item dans le colis
             foreach ($pkg->items as $item) {
                 if ($item->isFree()) {
-                    $product_key = $item->custom_name;
+                    $product_key = 'free_' . $item->custom_name;
+                    $product_name = $item->custom_name;
                 } else {
-                    $product_key = isset($product_names[$item->fk_commandedet])
+                    $product_key = 'prod_' . $item->fk_commandedet;
+                    $product_name = isset($product_names[$item->fk_commandedet])
                         ? $product_names[$item->fk_commandedet]
                         : 'Produit ID:' . $item->fk_commandedet;
                 }
 
-                debugLog("  Item", "fk_commandedet: {$item->fk_commandedet}, Produit: {$product_key}");
+                debugLog("  Item", "fk_commandedet: {$item->fk_commandedet}, Produit: {$product_name}, Key: {$product_key}");
 
                 if (!isset($packages_by_product[$product_key])) {
-                    $packages_by_product[$product_key] = array();
+                    $packages_by_product[$product_key] = array(
+                        'name' => $product_name,
+                        'packages' => array()
+                    );
                 }
 
                 // Vérifier si ce colis n'est pas déjà dans la liste pour ce produit
                 $already_added = false;
-                foreach ($packages_by_product[$product_key] as $existing_pkg) {
+                foreach ($packages_by_product[$product_key]['packages'] as $existing_pkg) {
                     if ($existing_pkg->id == $pkg->id) {
                         $already_added = true;
                         break;
@@ -614,7 +620,7 @@ function generateColisageHtmlList($commande_id, $db) {
                 }
 
                 if (!$already_added) {
-                    $packages_by_product[$product_key][] = $pkg;
+                    $packages_by_product[$product_key]['packages'][] = $pkg;
                     debugLog("  Colis ajouté au produit", $product_key);
                 } else {
                     debugLog("  Colis déjà présent pour ce produit", $product_key);
@@ -623,8 +629,11 @@ function generateColisageHtmlList($commande_id, $db) {
         }
 
         // Afficher chaque groupe de produits
-        foreach ($packages_by_product as $product_name => $pkgs) {
-            debugLog("Produit: {$product_name}", "Nombre de colis: " . count($pkgs));
+        foreach ($packages_by_product as $product_key => $product_group) {
+            $product_name = $product_group['name'];
+            $pkgs = $product_group['packages'];
+
+            debugLog("Produit: {$product_name} (key: {$product_key})", "Nombre de colis: " . count($pkgs));
 
             // Vérifier si on doit insérer un séparateur AVANT le nom du produit
             if ($line_count >= $next_separator_at) {
@@ -639,19 +648,18 @@ function generateColisageHtmlList($commande_id, $db) {
             // Afficher tous les colis de ce produit
             foreach ($pkgs as $pkg) {
                 // Filtrer les items pour ne garder que ceux qui correspondent au produit actuel
+                // CORRECTION: Filtrer par fk_commandedet (identifiant unique) au lieu du nom
                 $filtered_items = array();
                 foreach ($pkg->items as $item) {
-                    $item_product_name = '';
+                    $item_key = '';
                     if ($item->isFree()) {
-                        $item_product_name = $item->custom_name;
+                        $item_key = 'free_' . $item->custom_name;
                     } else {
-                        $item_product_name = isset($product_names[$item->fk_commandedet])
-                            ? $product_names[$item->fk_commandedet]
-                            : 'Produit ID:' . $item->fk_commandedet;
+                        $item_key = 'prod_' . $item->fk_commandedet;
                     }
 
-                    // Ne garder que les items qui correspondent au produit actuel
-                    if ($item_product_name === $product_name) {
+                    // Ne garder que les items qui correspondent au produit actuel (par clé unique)
+                    if ($item_key === $product_key) {
                         $filtered_items[] = $item;
                     }
                 }
