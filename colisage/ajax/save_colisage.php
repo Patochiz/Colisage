@@ -703,6 +703,10 @@ function generateColisageHtmlList($commande_id, $db) {
         foreach ($multi_product_packages as $pkg) {
             debugLog("Colis multi-produits", "ID: {$pkg->id}, Items: " . count($pkg->items));
 
+            // Saut de ligne avant les colis multi-produits pour les différencier
+            $html .= '<br>';
+            $line_count++;
+
             // Vérifier si on doit insérer un séparateur AVANT ce colis
             if ($line_count >= $next_separator_at) {
                 $html .= '<hr /><br />';
