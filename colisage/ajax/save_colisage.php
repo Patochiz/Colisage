@@ -563,23 +563,16 @@ function generateColisageHtmlList($commande_id, $db) {
         debugLog("Section {$idx}", "Titre: " . ($sec['titre'] ?: 'NULL') . ", Colis: " . count($sec['packages']));
     }
 
-    // Compteur de lignes pour la pagination
-    $line_count = 0;
-    $first_separator = 40;  // Premier séparateur après 40 lignes
-    $next_separators = 50;   // Suivants tous les 50 lignes
-    $next_separator_at = $first_separator;
+    // TCPDF gère automatiquement la pagination avec page-break-inside: avoid
+    // Plus besoin de compteur de lignes manuel
 
     // Pour chaque section
     foreach ($displayed_sections as $section_data) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
-            // Vérifier si on doit insérer un séparateur AVANT le titre
-            if ($line_count >= $next_separator_at) {
-                $html .= '<hr /><br />';
-                $next_separator_at += $next_separators;
-            }
-            $html .= '<strong style="font-size: 1.1em; color: #667eea;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
-            $line_count++;
+            $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
+            $html .= '<strong style="font-size: 1.1em;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
+            $html .= '</div>';
         }
 
         // Séparer les colis mono-produit et multi-produits
@@ -642,15 +635,11 @@ function generateColisageHtmlList($commande_id, $db) {
             foreach ($packages_by_product as $product_key => $product_group) {
                 $product_name = $product_group['name'];
 
-                // Vérifier si on doit insérer un séparateur AVANT le nom du produit
-                if ($line_count >= $next_separator_at) {
-                    $html .= '<hr /><br />';
-                    $next_separator_at += $next_separators;
-                }
+                // Bloc produit avec page-break-inside: avoid pour ne pas couper un groupe de colis
+                $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
 
                 // Afficher le nom du produit (titre)
-                $html .= '<span style="color: #000000; font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
-                $line_count += 2;
+                $html .= '<span style="font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
 
                 // Afficher tous les colis de ce produit
                 foreach ($product_group['packages'] as $pkg) {
@@ -663,11 +652,6 @@ function generateColisageHtmlList($commande_id, $db) {
 
                     // Afficher les items du colis
                     foreach ($pkg->items as $item_index => $item) {
-                        if ($line_count >= $next_separator_at) {
-                            $html .= '<hr /><br />';
-                            $next_separator_at += $next_separators;
-                        }
-
                         // Formater les dimensions/quantité
                         $qty_display = '';
                         if ($item->largeur && $item->largeur > 0) {
@@ -693,9 +677,10 @@ function generateColisageHtmlList($commande_id, $db) {
                         }
 
                         $html .= '<br>';
-                        $line_count++;
                     }
                 }
+
+                $html .= '</div>'; // Fin du bloc produit
             }
         }
 
@@ -703,15 +688,11 @@ function generateColisageHtmlList($commande_id, $db) {
         foreach ($multi_product_packages as $pkg) {
             debugLog("Colis multi-produits", "ID: {$pkg->id}, Items: " . count($pkg->items));
 
+            // Bloc colis multi-produits avec page-break-inside: avoid
+            $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
+
             // Saut de ligne avant les colis multi-produits pour les différencier
             $html .= '<br>';
-            $line_count++;
-
-            // Vérifier si on doit insérer un séparateur AVANT ce colis
-            if ($line_count >= $next_separator_at) {
-                $html .= '<hr /><br />';
-                $next_separator_at += $next_separators;
-            }
 
             // Formater le multiplicateur
             if ($pkg->multiplier > 1) {
@@ -729,11 +710,6 @@ function generateColisageHtmlList($commande_id, $db) {
                     $item_product_name = isset($product_names[$item->fk_commandedet])
                         ? $product_names[$item->fk_commandedet]
                         : 'Produit ID:' . $item->fk_commandedet;
-                }
-
-                if ($item_index > 0 && $line_count >= $next_separator_at) {
-                    $html .= '<hr /><br />';
-                    $next_separator_at += $next_separators;
                 }
 
                 // Formater les dimensions/quantité
@@ -759,15 +735,13 @@ function generateColisageHtmlList($commande_id, $db) {
                 }
 
                 $html .= '<br>';
-                $line_count++;
             }
+
+            $html .= '</div>'; // Fin du bloc colis multi-produits
         }
 
-        $html .= '<br>'; // Saut de ligne après chaque section
+        // Pas de <br> entre les sections - les <div> suffisent
     }
-
-    // Supprimer le dernier <br> s'il existe
-    $html = rtrim($html, '<br>');
 
     return $html;
 }
