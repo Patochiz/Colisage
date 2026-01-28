@@ -570,7 +570,7 @@ function generateColisageHtmlList($commande_id, $db) {
     foreach ($displayed_sections as $section_data) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
-            $html .= '<div style="page-break-inside: avoid;">';
+            $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
             $html .= '<strong style="font-size: 1.1em;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
             $html .= '</div>';
         }
@@ -636,7 +636,7 @@ function generateColisageHtmlList($commande_id, $db) {
                 $product_name = $product_group['name'];
 
                 // Bloc produit avec page-break-inside: avoid pour ne pas couper un groupe de colis
-                $html .= '<div style="page-break-inside: avoid;">';
+                $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
 
                 // Afficher le nom du produit (titre)
                 $html .= '<span style="font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
@@ -689,7 +689,7 @@ function generateColisageHtmlList($commande_id, $db) {
             debugLog("Colis multi-produits", "ID: {$pkg->id}, Items: " . count($pkg->items));
 
             // Bloc colis multi-produits avec page-break-inside: avoid
-            $html .= '<div style="page-break-inside: avoid;">';
+            $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
 
             // Saut de ligne avant les colis multi-produits pour les différencier
             $html .= '<br>';
