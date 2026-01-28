@@ -571,7 +571,7 @@ function generateColisageHtmlList($commande_id, $db) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
             $html .= '<div style="page-break-inside: avoid;">';
-            $html .= '<strong style="font-size: 1.1em; color: #667eea;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
+            $html .= '<strong style="font-size: 1.1em;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
             $html .= '</div>';
         }
 
@@ -639,7 +639,7 @@ function generateColisageHtmlList($commande_id, $db) {
                 $html .= '<div style="page-break-inside: avoid;">';
 
                 // Afficher le nom du produit (titre)
-                $html .= '<span style="color: #000000; font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
+                $html .= '<span style="font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
 
                 // Afficher tous les colis de ce produit
                 foreach ($product_group['packages'] as $pkg) {
