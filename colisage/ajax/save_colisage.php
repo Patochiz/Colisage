@@ -740,11 +740,8 @@ function generateColisageHtmlList($commande_id, $db) {
             $html .= '</div>'; // Fin du bloc colis multi-produits
         }
 
-        $html .= '<br>'; // Saut de ligne après chaque section
+        // Pas de <br> entre les sections - les <div> suffisent
     }
-
-    // Supprimer le dernier <br> s'il existe
-    $html = rtrim($html, '<br>');
 
     return $html;
 }
