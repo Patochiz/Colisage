@@ -571,7 +571,7 @@ function generateColisageHtmlList($commande_id, $db) {
         // Afficher le titre de section si présent
         if ($section_data['titre']) {
             $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
-            $html .= '<strong style="font-size: 1.1em;">-' . htmlspecialchars($section_data['titre']) . '</strong><br>';
+            $html .= '<strong style="font-size: 1.1em;">' . htmlspecialchars($section_data['titre']) . '</strong><br>';
             $html .= '</div>';
         }
 
@@ -667,7 +667,7 @@ function generateColisageHtmlList($commande_id, $db) {
                         }
 
                         if ($item_index == 0) {
-                            $html .= '---' . $multiplier_text . $qty_display;
+                            $html .= $multiplier_text . $qty_display;
                         } else {
                             $html .= str_repeat('&nbsp;', 18) . '+ ' . $qty_display;
                         }
@@ -723,8 +723,8 @@ function generateColisageHtmlList($commande_id, $db) {
                 }
 
                 if ($item_index == 0) {
-                    // Premier item : "---1 colis de 65u Trappes Métal..."
-                    $html .= '---' . $multiplier_text . $qty_display . ' <span style="font-style: italic;">' . htmlspecialchars($item_product_name) . '</span>';
+                    // Premier item : "1 colis de 65u Trappes Métal..."
+                    $html .= $multiplier_text . $qty_display . ' <span style="font-style: italic;">' . htmlspecialchars($item_product_name) . '</span>';
                 } else {
                     // Items suivants : "                  +35u Trappes Métal..."
                     $html .= str_repeat('&nbsp;', 18) . '+' . $qty_display . ' <span style="font-style: italic;">' . htmlspecialchars($item_product_name) . '</span>';
