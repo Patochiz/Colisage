@@ -74,7 +74,7 @@ if (!class_exists('ZipArchive')) {
     $output = array();
     foreach ($files as $filename => $content) {
         $output[] = array(
-            'name'    => $filename,
+            'name'    => 'Projects/'.$commandeRef.'/'.$filename,
             'content' => base64_encode($content),
         );
     }
@@ -97,14 +97,14 @@ if ($zip->open($tmpFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
 }
 
 foreach ($files as $filename => $content) {
-    $zip->addFromString($filename, $content);
+    $zip->addFromString('Projects/'.$commandeRef.'/'.$filename, $content);
 }
 $zip->close();
 
 // ---------------------------------------------------------------
 // Send ZIP to browser
 // ---------------------------------------------------------------
-$zipFilename = 'EBS_'.$commandeRef.'.zip';
+$zipFilename = 'EBS-exportFile.zip';
 
 header('Content-Type: application/zip');
 header('Content-Disposition: attachment; filename="'.$zipFilename.'"');
