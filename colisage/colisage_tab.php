@@ -191,6 +191,14 @@ print '</div>';
 print '</div>';
 print '</div>';
 
+// Bouton de génération des fichiers EBS
+$ebsUrl = dol_buildpath('/colisage/ajax/generate_ebs_files.php', 1).'?id='.$id.'&token='.newToken();
+print '<div style="margin-top: 0.75rem; text-align: right;">';
+print '<a href="'.dol_escape_htmltag($ebsUrl).'" class="colisage-btn colisage-btn-secondary" style="text-decoration: none;" title="Télécharger les fichiers .prj et .prv pour l\'imprimante EBS">';
+print '📦 Générer fichiers EBS (.prj / .prv)';
+print '</a>';
+print '</div>';
+
 // Liste des colis créés
 print '<div class="summary-section" style="margin-top: 1rem;">';
 print '<div class="summary-header">Colis Créés</div>';

@@ -425,6 +425,277 @@ function formatWeightWithUnit($weight, $unit_id = null)
 }
 
 /**
+ * Generate EBS printer files (.prj XML + .prv PNG) for all packages of a commande
+ *
+ * Text 1 : Contact SHIPPING / VILLE (CP)
+ * Text 2 : Section title (ref_chantier)
+ * Text 3 : Item details, format {qty}x{longueur} concatenated with +
+ * LineDivider : positioned at max(width_text1, width_text2)
+ * Text 3 x   : LineDivider x + 5 (divider width) + 5 (margin)
+ *
+ * @param int $fk_commande  ID de la commande
+ * @return array|false      Associative array [filename => content_string] or false on error
+ */
+function generateColisageEBSFiles($fk_commande)
+{
+    global $db;
+
+    if (empty($fk_commande)) {
+        return false;
+    }
+
+    // ---------------------------------------------------------------
+    // 1. Load commande
+    // ---------------------------------------------------------------
+    require_once DOL_DOCUMENT_ROOT.'/commande/class/commande.class.php';
+    $commande = new Commande($db);
+    if ($commande->fetch((int) $fk_commande) <= 0) {
+        return false;
+    }
+
+    // ---------------------------------------------------------------
+    // 2. Build Text 1 from SHIPPING contact
+    //    Format : "CONTACT / VILLE (DEPT)"
+    // ---------------------------------------------------------------
+    $text1 = '';
+    $contactIds = $commande->getIdContact('external', 'SHIPPING');
+    if (!empty($contactIds)) {
+        require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
+        $contact = new Contact($db);
+        if ($contact->fetch((int) $contactIds[0]) > 0) {
+            $contactName = strtoupper(trim($contact->lastname));
+            $city        = strtoupper(trim($contact->town));
+            $zip         = trim($contact->zip);
+            $dept        = substr($zip, 0, 2);
+            $text1       = $contactName.' / '.$city.' ('.$dept.')';
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 3. Build section map : commandedet_rowid => section_title
+    //    Iterate order lines ordered by rang; each section header
+    //    (fk_product=361, product_type=1) updates the current section.
+    // ---------------------------------------------------------------
+    $sectionMap = array(); // commandedet_rowid => section title string
+
+    $sql  = "SELECT cd.rowid, cd.rang, cd.product_type, cd.fk_product, cd.description,";
+    $sql .= " cde.ref_chantier";
+    $sql .= " FROM ".MAIN_DB_PREFIX."commandedet cd";
+    $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."commandedet_extrafields cde ON cde.fk_object = cd.rowid";
+    $sql .= " WHERE cd.fk_commande = ".((int) $fk_commande);
+    $sql .= " ORDER BY cd.rang ASC, cd.rowid ASC";
+
+    $resql = $db->query($sql);
+    if ($resql) {
+        $currentSection = '';
+        while ($obj = $db->fetch_object($resql)) {
+            // Section header detection (Service ID=361)
+            if ((int) $obj->fk_product === 361 && (int) $obj->product_type === 1) {
+                $currentSection = !empty($obj->ref_chantier) ? $obj->ref_chantier : $obj->description;
+            }
+            $sectionMap[(int) $obj->rowid] = $currentSection;
+        }
+        $db->free($resql);
+    }
+
+    // ---------------------------------------------------------------
+    // 4. Load packages and generate one file per package entry
+    // ---------------------------------------------------------------
+    require_once __DIR__.'/../class/colisagepackage.class.php';
+
+    $sql  = "SELECT rowid, multiplier FROM ".MAIN_DB_PREFIX."colisage_packages";
+    $sql .= " WHERE fk_commande = ".((int) $fk_commande);
+    $sql .= " ORDER BY rowid ASC";
+
+    $resql = $db->query($sql);
+    if (!$resql) {
+        return false;
+    }
+
+    $files    = array();
+    $colisNum = 1;
+
+    while ($pkgRow = $db->fetch_object($resql)) {
+        $package = new ColisagePackage($db);
+        if ($package->fetch((int) $pkgRow->rowid) <= 0) {
+            $colisNum++;
+            continue;
+        }
+
+        // --- Determine section title (Text 2) ---
+        $text2 = '';
+        foreach ($package->items as $item) {
+            if (!empty($item->fk_commandedet) && isset($sectionMap[(int) $item->fk_commandedet])) {
+                $text2 = $sectionMap[(int) $item->fk_commandedet];
+                break;
+            }
+        }
+
+        // --- Build Text 3 : {qty}x{longueur} for each item, joined by + ---
+        $text3Parts = array();
+        foreach ($package->items as $item) {
+            $longueur = (int) ($item->longueur ?: $item->custom_longueur);
+            $qty      = (int) $item->quantity;
+            if ($longueur > 0 && $qty > 0) {
+                $text3Parts[] = $qty.'x'.$longueur;
+            }
+        }
+        $text3 = implode('+', $text3Parts);
+
+        // --- Calculate positions ---
+        // Font_16x10 → 10 px/char  (Text 1, Text 3)
+        // Font_12x7  →  7 px/char  (Text 2)
+        $charWidthT1  = 10;
+        $charWidthT2  = 7;
+        $text1Width   = mb_strlen($text1, 'UTF-8') * $charWidthT1;
+        $text2Width   = mb_strlen($text2, 'UTF-8') * $charWidthT2;
+        $lineDividerX = max($text1Width, $text2Width);
+        $text3X       = $lineDividerX + 5 + 5; // divider_width=5 + margin=5
+
+        // --- Build filename ---
+        $multiplier = max(1, (int) ($package->multiplier ?? 1));
+        $filename   = 'colis'.$colisNum;
+        if ($multiplier > 1) {
+            $filename .= '_x'.$multiplier;
+        }
+
+        // --- Generate .prj XML ---
+        $files[$filename.'.prj'] = _generateEBSPrjXml($text1, $text2, $text3, $lineDividerX, $text3X);
+
+        // --- Generate .prv PNG ---
+        $prvData = _generateEBSPrvPng($text1, $text2, $text3, $lineDividerX, $text3X);
+        if ($prvData !== false) {
+            $files[$filename.'.prv'] = $prvData;
+        }
+
+        $colisNum++;
+    }
+    $db->free($resql);
+
+    return $files;
+}
+
+/**
+ * Generate EBS printer project XML content (.prj)
+ *
+ * @param string $text1        Text 1 : Contact / VILLE (dept)
+ * @param string $text2        Text 2 : Section title
+ * @param string $text3        Text 3 : Item details
+ * @param int    $lineDividerX X position of the line divider
+ * @param int    $text3X       X position of Text 3 (and Text 4)
+ * @return string              XML string
+ */
+function _generateEBSPrjXml($text1, $text2, $text3, $lineDividerX, $text3X)
+{
+    $t1 = htmlspecialchars($text1, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    $t2 = htmlspecialchars($text2, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    $t3 = htmlspecialchars($text3, ENT_QUOTES | ENT_XML1, 'UTF-8');
+
+    $editorData = '<EditorData Field0="" Field1="" Field2="" Field3="" Field4="" Field5="" Field6="" Field7="" Field8="" Field9="" Field10="" Field11="" Field12="" Field13="" Field14="%s"/>';
+    $printingParams = '<PrintingParams ExternParamsFile="" UseExternParamsFile="0" ImpulseGeneratorSource="1" TriggerType="0" TriggerSignalMode="0" PhotocellSource="0" Resolution="550" PrintDistance="0" TxtRepetitions="1" RepetitionDistance="0" RowMultiply="0" UpsideDownPrint="0" ReversePrint="0" ShaftDirection="0" TextHeight="0" CleaningRows="0" Pressure="35" DotSize="3"/>';
+
+    $xml  = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+    $xml .= '<EBS_PrinterProject>'."\n";
+    $xml .= '  <ProjectSettings DataFormat="10" PrintHeadName="EBS-Electromagnetic-32" FriendlyName="Undefined" w="1000" h="32" ObjectsCount="5" ManagerInfo="1" min_w="660"/>'."\n";
+    $xml .= '  '.$printingParams."\n";
+
+    // Text 1 — Contact / VILLE (dept) — top row, Font_16x10
+    $xml .= '  <Object ObjectType="TextObject" ObjectName="Text 1" x="0" y="0" w="100" h="16" AutoSize="1" Transparent="1"';
+    $xml .= ' Text="'.$t1.'"';
+    $xml .= ' FontName="fonts/Default/Font_16x10.xml" FontSize="25" FontSizeY="25"';
+    $xml .= ' FontBold="0" FontItalic="0" FontRotate="0" LineSpacing="1" LetterSpacing="1" RowMultiply="1"';
+    $xml .= ' ObjectRotate="0" IsLinked="0" LinkedToObject="" MustEdit="0" Printable="1">'."\n";
+    $xml .= '    '.sprintf($editorData, '1')."\n";
+    $xml .= '  </Object>'."\n";
+
+    // Text 2 — Section title — bottom row, Font_12x7
+    $xml .= '  <Object ObjectType="TextObject" ObjectName="Text 2" x="0" y="17" w="40" h="12" AutoSize="1" Transparent="1"';
+    $xml .= ' Text="'.$t2.'"';
+    $xml .= ' FontName="fonts/Default/Font_12x7.xml" FontSize="7" FontSizeY="7"';
+    $xml .= ' FontBold="0" FontItalic="0" FontRotate="0" LineSpacing="1" LetterSpacing="1" RowMultiply="1"';
+    $xml .= ' ObjectRotate="0" IsLinked="0" LinkedToObject="" MustEdit="0" Printable="1">'."\n";
+    $xml .= '    '.sprintf($editorData, '1')."\n";
+    $xml .= '  </Object>'."\n";
+
+    // Text 3 — Item details — top row after divider, Font_16x10
+    $xml .= '  <Object ObjectType="TextObject" ObjectName="Text 3" x="'.$text3X.'" y="0" w="110" h="16" AutoSize="1" Transparent="1"';
+    $xml .= ' Text="'.$t3.'"';
+    $xml .= ' FontName="fonts/Default/Font_16x10.xml" FontSize="25" FontSizeY="25"';
+    $xml .= ' FontBold="0" FontItalic="0" FontRotate="0" LineSpacing="1" LetterSpacing="1" RowMultiply="1"';
+    $xml .= ' ObjectRotate="0" IsLinked="0" LinkedToObject="" MustEdit="0" Printable="1">'."\n";
+    $xml .= '    '.sprintf($editorData, '1')."\n";
+    $xml .= '  </Object>'."\n";
+
+    // Text 4 — Empty, bottom row after divider, Font_16x10
+    $xml .= '  <Object ObjectType="TextObject" ObjectName="Text 4" x="'.$text3X.'" y="17" w="60" h="7" AutoSize="1" Transparent="1"';
+    $xml .= ' Text=""';
+    $xml .= ' FontName="fonts/Default/Font_16x10.xml" FontSize="25" FontSizeY="25"';
+    $xml .= ' FontBold="0" FontItalic="0" FontRotate="0" LineSpacing="1" LetterSpacing="1" RowMultiply="1"';
+    $xml .= ' ObjectRotate="0" IsLinked="0" LinkedToObject="" MustEdit="0" Printable="1">'."\n";
+    $xml .= '    '.sprintf($editorData, '1')."\n";
+    $xml .= '  </Object>'."\n";
+
+    // LineDivider — vertical separator
+    $xml .= '  <Object ObjectType="SpecialObject" Type="0" ObjectName="LineDivider 1" x="'.$lineDividerX.'" y="0" w="5" h="32">'."\n";
+    $xml .= '    '.sprintf($editorData, '')."\n";
+    $xml .= '  </Object>'."\n";
+
+    $xml .= '</EBS_PrinterProject>'."\n";
+
+    return $xml;
+}
+
+/**
+ * Generate EBS printer preview PNG image (.prv)
+ *
+ * Canvas : 1000 x 32 pixels (matches EBS project canvas)
+ * White background, black text and divider.
+ *
+ * @param string $text1        Text 1
+ * @param string $text2        Text 2
+ * @param string $text3        Text 3
+ * @param int    $lineDividerX X position of the vertical divider
+ * @param int    $text3X       X position of Text 3
+ * @return string|false        PNG binary data or false if GD unavailable
+ */
+function _generateEBSPrvPng($text1, $text2, $text3, $lineDividerX, $text3X)
+{
+    if (!function_exists('imagecreate')) {
+        return false;
+    }
+
+    // GD built-in fonts don't handle multi-byte UTF-8; convert to ISO-8859-1
+    $t1 = mb_convert_encoding($text1, 'ISO-8859-1', 'UTF-8');
+    $t2 = mb_convert_encoding($text2, 'ISO-8859-1', 'UTF-8');
+    $t3 = mb_convert_encoding($text3, 'ISO-8859-1', 'UTF-8');
+
+    $img   = imagecreate(1000, 32);
+    $white = imagecolorallocate($img, 255, 255, 255);
+    $black = imagecolorallocate($img, 0, 0, 0);
+
+    // White background (auto-filled as first allocated color)
+    // Unused variable silenced:
+    unset($white);
+    imagefilledrectangle($img, 0, 0, 999, 31, imagecolorallocate($img, 255, 255, 255));
+
+    // Font 5 : ~9px wide, 15px tall — closest match to Font_16x10
+    // Font 3 : ~7px wide, 13px tall — closest match to Font_12x7
+    imagestring($img, 5, 0, 0,  $t1, $black); // Text 1 — top row
+    imagestring($img, 3, 0, 17, $t2, $black); // Text 2 — bottom row
+    imagestring($img, 5, $text3X, 0, $t3, $black); // Text 3 — top row after divider
+
+    // Vertical divider (5px wide)
+    imagefilledrectangle($img, $lineDividerX, 0, $lineDividerX + 4, 31, $black);
+
+    ob_start();
+    imagepng($img);
+    $data = ob_get_clean();
+    imagedestroy($img);
+
+    return $data;
+}
+
+/**
  * Check if module is properly configured
  *
  * @return array Array with status and messages
