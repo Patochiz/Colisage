@@ -1429,3 +1429,20 @@
     background: #e9ecef;
     color: #495057;
 }
+
+/* Sélecteur de livraison sur les cartes colis */
+.colis-livraison-move {
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+.colis-livraison-select {
+    font-size: 0.78rem;
+    padding: 2px 4px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #495057;
+    cursor: pointer;
+}

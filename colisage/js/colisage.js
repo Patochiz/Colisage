@@ -184,6 +184,30 @@ function addLivraison() {
 }
 
 /**
+ * Déplacer un colis vers une autre livraison
+ */
+function movePackageToLivraison(event, packageId, newLivraisonNum) {
+    event.stopPropagation();
+    const pkg = findPackageById(packageId);
+    if (!pkg) return;
+    if ((pkg.livraison_num || 1) === newLivraisonNum) return;
+
+    pkg.livraison_num = newLivraisonNum;
+
+    // Si la livraison de destination n'existe pas encore, étendre maxLivraison
+    if (newLivraisonNum > colisageApp.maxLivraison) {
+        colisageApp.maxLivraison = newLivraisonNum;
+    }
+
+    // Basculer sur la livraison de destination
+    colisageApp.activeLivraison = newLivraisonNum;
+    colisageApp.selectedPackageId = pkg.id;
+
+    autoSaveColisage();
+    render();
+}
+
+/**
  * Afficher les onglets de livraison
  */
 function renderLivraisonTabs() {
@@ -822,6 +846,14 @@ function renderPackageCard(pkg, showProductNameOnItems) {
                         <span>Total: <strong>${(weightPerPackage * pkg.multiplier).toFixed(1)} kg</strong></span>
                         <span>Articles: <strong>${pkg.items.length}</strong></span>
                     </div>
+                </div>
+                <div class="colis-livraison-move" onclick="event.stopPropagation()">
+                    <label style="font-size:0.75rem; color:#6c757d; margin-right:3px;">Livraison</label>
+                    <select class="colis-livraison-select" onchange="movePackageToLivraison(event, '${pkg.id}', parseInt(this.value))" title="Déplacer vers une autre livraison">
+                        ${Array.from({length: colisageApp.maxLivraison}, (_, i) => i + 1).map(n =>
+                            `<option value="${n}" ${n === (pkg.livraison_num || 1) ? 'selected' : ''}>L${n}</option>`
+                        ).join('')}
+                    </select>
                 </div>
                 <button class="btn-delete-colis" onclick="handleDeletePackage(event, '${pkg.id}')" title="Supprimer ce colis">×</button>
             </div>
@@ -2036,6 +2068,7 @@ window.setMaxQuantity = setMaxQuantity;
 window.saveColisage = saveColisage;
 window.switchLivraison = switchLivraison;
 window.addLivraison = addLivraison;
+window.movePackageToLivraison = movePackageToLivraison;
 
 // Exposer les fonctions d'édition des titres
 window.startEditCardTitle = startEditCardTitle;
