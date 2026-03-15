@@ -308,16 +308,16 @@ foreach ($object->lines as $line) {
             }
         }
         
-        // Si pas de détails, créer un détail par défaut
+        // Si pas de détails, créer un détail basé sur la quantité de la ligne (sans dimensions)
         if (empty($details)) {
             $details[] = array(
                 'detail_id' => 'detail_' . $line->rowid . '_0',
                 'pieces' => (int)$line->qty,
-                'longueur' => 1000,
-                'largeur' => 1000,
+                'longueur' => 0,
+                'largeur' => 0,
                 'total_value' => (float)$line->qty,
-                'unit' => 'pieces',
-                'description' => 'Produit standard'
+                'unit' => 'u',
+                'description' => ''
             );
             $total_details++;
         }

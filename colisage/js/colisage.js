@@ -869,10 +869,10 @@ function renderPackageCard(pkg, showProductNameOnItems) {
             let itemDisplay = '';
             let surfaceDisplay = '0.00 m²';
 
-            if (item.largeur && item.largeur !== null && item.largeur > 0) {
+            if (item.largeur && item.largeur !== null && item.largeur > 0 && item.largeur !== 1000 && item.longueur !== 1000) {
                 itemDisplay = `${item.quantity} × ${item.longueur}×${item.largeur}`;
                 surfaceDisplay = `${(item.quantity * item.longueur * item.largeur / 1000000).toFixed(2)} m²`;
-            } else if (item.longueur && item.longueur !== null && item.longueur > 0) {
+            } else if (item.longueur && item.longueur !== null && item.longueur > 0 && item.longueur !== 1000) {
                 itemDisplay = `${item.quantity} × ${item.longueur}`;
                 surfaceDisplay = `${(item.quantity * item.longueur / 1000).toFixed(2)} ml`;
             } else {
