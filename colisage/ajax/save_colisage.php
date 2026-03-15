@@ -525,7 +525,7 @@ function generateColisageHtmlList($commande_id, $db) {
         // En-tête de livraison (uniquement si plusieurs livraisons)
         if ($has_multiple_livraisons) {
             $html .= '<div style="page-break-inside: avoid; margin: 0.5em 0; padding: 2px 0; border-top: 2px solid #333;">';
-            $html .= '<strong style="font-size: 1.1em;">&#9658; LIVRAISON ' . ((int) $current_livraison) . '</strong><br>';
+            $html .= '<strong style="font-size: 1.1em;">- LIVRAISON ' . ((int) $current_livraison) . '</strong><br>';
             $html .= '</div>';
         }
 
