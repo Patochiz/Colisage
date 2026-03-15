@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS llx_colisage_packages
     fk_commande     integer NOT NULL,
     multiplier      integer DEFAULT 1,
     is_free         tinyint DEFAULT 0,
+    livraison_num   integer DEFAULT 1,
     total_weight    decimal(10,3) DEFAULT 0,
     total_surface   decimal(10,3) DEFAULT 0,
     date_creation   datetime,

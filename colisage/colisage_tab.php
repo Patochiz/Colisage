@@ -227,7 +227,19 @@ window.colisageData = {
     packages: [],
     nextPackageId: 1,
     selectedPackageId: null,
-    debugMode: <?php echo $debug_mode ? 'true' : 'false'; ?>
+    debugMode: <?php echo $debug_mode ? 'true' : 'false'; ?>,
+    maxLivraison: <?php
+        $sql_max_liv = "SELECT MAX(livraison_num) as max_liv FROM ".MAIN_DB_PREFIX."colisage_packages WHERE fk_commande = ".((int)$id);
+        $res_max_liv = $db->query($sql_max_liv);
+        $max_liv = 1;
+        if ($res_max_liv) {
+            $obj_max_liv = $db->fetch_object($res_max_liv);
+            if ($obj_max_liv && !is_null($obj_max_liv->max_liv)) {
+                $max_liv = max(1, (int)$obj_max_liv->max_liv);
+            }
+        }
+        echo json_encode($max_liv);
+    ?>
 };
 
 // Charger les données des produits de la commande (version améliorée)

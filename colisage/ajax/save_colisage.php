@@ -171,6 +171,7 @@ if ($action === 'save_colisage') {
             
             $multiplier = max(1, (int) ($pkg_data['multiplier'] ?? 1));
             $is_free = !empty($pkg_data['isFree']) ? 1 : 0;
+            $livraison_num = max(1, (int) ($pkg_data['livraison_num'] ?? 1));
             
             // Déterminer si on UPDATE ou INSERT
             $package_id = null;
@@ -179,9 +180,10 @@ if ($action === 'save_colisage') {
                 // UPDATE du colis existant
                 $package_id = $existing_package_ids[$pkg_index];
                 
-                $sql = "UPDATE ".MAIN_DB_PREFIX."colisage_packages SET 
+                $sql = "UPDATE ".MAIN_DB_PREFIX."colisage_packages SET
                         multiplier = ".((int) $multiplier).",
                         is_free = ".((int) $is_free).",
+                        livraison_num = ".((int) $livraison_num).",
                         total_weight = ".((float) $total_weight).",
                         total_surface = ".((float) $total_surface).",
                         date_modification = '".$db->idate(dol_now())."',
@@ -206,6 +208,7 @@ if ($action === 'save_colisage') {
                 $package->fk_commande = $commande_id;
                 $package->multiplier = $multiplier;
                 $package->is_free = $is_free;
+                $package->livraison_num = $livraison_num;
                 $package->total_weight = $total_weight;
                 $package->total_surface = $total_surface;
                 
@@ -357,6 +360,7 @@ if ($action === 'save_colisage') {
             'id' => $pkg->id,
             'multiplier' => $pkg->multiplier,
             'isFree' => $pkg->is_free ? true : false,
+            'livraison_num' => (int) $pkg->livraison_num,
             'total_weight' => $pkg->total_weight,
             'total_surface' => $pkg->total_surface,
             'items' => array()
@@ -483,53 +487,22 @@ function generateColisageHtmlList($commande_id, $db) {
         }
     }
 
-    // 3. Classifier les colis par section (et détecter Multi-Ref)
-    $packages_by_section = array();
-    $packages_by_section[-1] = array(); // Produits avant le premier titre
-    $packages_by_section['multi_ref'] = array(); // Colis multi-sections
-
-    foreach ($sections as $index => $section) {
-        $packages_by_section[$index] = array();
-    }
-
+    // 2b. Récupérer les numéros de livraison distincts
+    $livraison_nums = array();
     foreach ($packages as $pkg) {
-        if (empty($pkg->items)) {
-            continue;
+        $lnum = isset($pkg->livraison_num) ? (int) $pkg->livraison_num : 1;
+        if (!in_array($lnum, $livraison_nums)) {
+            $livraison_nums[] = $lnum;
         }
-
-        // Déterminer toutes les sections de ce colis
-        $sections_in_package = array();
-
-        foreach ($pkg->items as $item) {
-            if ($item->isFree()) {
-                // Produit libre → pas de section
-                $sections_in_package[] = null;
-            } else {
-                $section_index = isset($commandedet_to_section[$item->fk_commandedet])
-                    ? $commandedet_to_section[$item->fk_commandedet]
-                    : null;
-
-                if ($section_index !== null && !in_array($section_index, $sections_in_package)) {
-                    $sections_in_package[] = $section_index;
-                }
-            }
-        }
-
-        // Enlever les null
-        $sections_in_package = array_filter($sections_in_package, function($s) { return $s !== null; });
-        $sections_in_package = array_unique($sections_in_package);
-
-        // Si plusieurs sections → Multi-Ref
-        if (count($sections_in_package) > 1) {
-            $packages_by_section['multi_ref'][] = $pkg;
-        } elseif (count($sections_in_package) == 1) {
-            $section_index = reset($sections_in_package);
-            $packages_by_section[$section_index][] = $pkg;
-        }
-        // Si aucune section (produits libres) → ignorer pour l'instant
     }
+    sort($livraison_nums);
+    if (empty($livraison_nums)) {
+        $livraison_nums = array(1);
+    }
+    $has_multiple_livraisons = count($livraison_nums) > 1;
 
-    // 4. Générer le HTML avec la hiérarchie Titre > Produit > Colis
+
+    // 4. Générer le HTML avec la hiérarchie Livraison > Titre > Produit > Colis
     $html = '';
 
     // Créer mapping product_names pour tous les produits
@@ -538,30 +511,74 @@ function generateColisageHtmlList($commande_id, $db) {
         $product_names[$line->rowid] = $line->product_label ?: $line->label;
     }
 
-    // Afficher les sections dans l'ordre
-    $displayed_sections = array();
+    // Boucle par livraison
+    foreach ($livraison_nums as $current_livraison) {
+        // Filtrer les colis de cette livraison
+        $packages_in_livraison = array_filter($packages, function($pkg) use ($current_livraison) {
+            return (isset($pkg->livraison_num) ? (int) $pkg->livraison_num : 1) === $current_livraison;
+        });
 
-    // Produits avant le premier titre (si présents)
-    if (!empty($packages_by_section[-1])) {
-        $displayed_sections[] = array('index' => -1, 'titre' => null, 'packages' => $packages_by_section[-1]);
-    }
-
-    // Sections avec titres
-    foreach ($sections as $index => $section) {
-        if (!empty($packages_by_section[$index])) {
-            $displayed_sections[] = array('index' => $index, 'titre' => $section['titre'], 'packages' => $packages_by_section[$index]);
+        if (empty($packages_in_livraison)) {
+            continue;
         }
-    }
 
-    // Multi-Ref (si présents)
-    if (!empty($packages_by_section['multi_ref'])) {
-        $displayed_sections[] = array('index' => 'multi_ref', 'titre' => 'Multi Ref', 'packages' => $packages_by_section['multi_ref']);
-    }
+        // En-tête de livraison (uniquement si plusieurs livraisons)
+        if ($has_multiple_livraisons) {
+            $html .= '<div style="page-break-inside: avoid; margin: 0.5em 0; padding: 2px 0; border-top: 2px solid #333;">';
+            $html .= '<strong style="font-size: 1.1em;">- LIVRAISON ' . ((int) $current_livraison) . '</strong><br>';
+            $html .= '</div>';
+        }
 
-    debugLog("generateColisageHtmlList - Nombre de sections affichées", count($displayed_sections));
-    foreach ($displayed_sections as $idx => $sec) {
-        debugLog("Section {$idx}", "Titre: " . ($sec['titre'] ?: 'NULL') . ", Colis: " . count($sec['packages']));
-    }
+        // Classifier les colis de cette livraison par section (et détecter Multi-Ref)
+        $livr_packages_by_section = array();
+        $livr_packages_by_section[-1] = array();
+        $livr_packages_by_section['multi_ref'] = array();
+        foreach ($sections as $index => $section) {
+            $livr_packages_by_section[$index] = array();
+        }
+
+        foreach ($packages_in_livraison as $pkg) {
+            if (empty($pkg->items)) {
+                continue;
+            }
+            $sections_in_package = array();
+            foreach ($pkg->items as $item) {
+                if ($item->isFree()) {
+                    $sections_in_package[] = null;
+                } else {
+                    $section_index = isset($commandedet_to_section[$item->fk_commandedet])
+                        ? $commandedet_to_section[$item->fk_commandedet]
+                        : null;
+                    if ($section_index !== null && !in_array($section_index, $sections_in_package)) {
+                        $sections_in_package[] = $section_index;
+                    }
+                }
+            }
+            $sections_in_package = array_filter($sections_in_package, function($s) { return $s !== null; });
+            $sections_in_package = array_unique($sections_in_package);
+            if (count($sections_in_package) > 1) {
+                $livr_packages_by_section['multi_ref'][] = $pkg;
+            } elseif (count($sections_in_package) == 1) {
+                $section_index = reset($sections_in_package);
+                $livr_packages_by_section[$section_index][] = $pkg;
+            }
+        }
+
+        // Afficher les sections dans l'ordre
+        $displayed_sections = array();
+        if (!empty($livr_packages_by_section[-1])) {
+            $displayed_sections[] = array('index' => -1, 'titre' => null, 'packages' => $livr_packages_by_section[-1]);
+        }
+        foreach ($sections as $index => $section) {
+            if (!empty($livr_packages_by_section[$index])) {
+                $displayed_sections[] = array('index' => $index, 'titre' => $section['titre'], 'packages' => $livr_packages_by_section[$index]);
+            }
+        }
+        if (!empty($livr_packages_by_section['multi_ref'])) {
+            $displayed_sections[] = array('index' => 'multi_ref', 'titre' => 'Multi Ref', 'packages' => $livr_packages_by_section['multi_ref']);
+        }
+
+        debugLog("generateColisageHtmlList - Livraison {$current_livraison} - Sections affichées", count($displayed_sections));
 
     // TCPDF gère automatiquement la pagination avec page-break-inside: avoid
     // Plus besoin de compteur de lignes manuel
@@ -742,6 +759,8 @@ function generateColisageHtmlList($commande_id, $db) {
 
         // Pas de <br> entre les sections - les <div> suffisent
     }
+
+    } // Fin de la boucle foreach ($livraison_nums as $current_livraison)
 
     return $html;
 }

@@ -25,7 +25,9 @@ let colisageApp = {
     commandeId: null,
     token: null,
     urlBase: '',
-    isSaving: false // Éviter les sauvegardes multiples simultanées
+    isSaving: false, // Éviter les sauvegardes multiples simultanées
+    activeLivraison: 1,  // Livraison actuellement affichée
+    maxLivraison: 1      // Nombre total de livraisons
 };
 
 /**
@@ -162,6 +164,66 @@ function reindexPackages() {
     console.log(`🔢 Prochain ID: ${colisageApp.nextPackageId}`);
 }
 
+/**
+ * Basculer vers une livraison
+ */
+function switchLivraison(num) {
+    colisageApp.activeLivraison = num;
+    colisageApp.selectedPackageId = null;
+    render();
+}
+
+/**
+ * Ajouter une nouvelle livraison
+ */
+function addLivraison() {
+    colisageApp.maxLivraison++;
+    colisageApp.activeLivraison = colisageApp.maxLivraison;
+    colisageApp.selectedPackageId = null;
+    render();
+}
+
+/**
+ * Déplacer un colis vers une autre livraison
+ */
+function movePackageToLivraison(event, packageId, newLivraisonNum) {
+    event.stopPropagation();
+    const pkg = findPackageById(packageId);
+    if (!pkg) return;
+    if ((pkg.livraison_num || 1) === newLivraisonNum) return;
+
+    pkg.livraison_num = newLivraisonNum;
+
+    // Si la livraison de destination n'existe pas encore, étendre maxLivraison
+    if (newLivraisonNum > colisageApp.maxLivraison) {
+        colisageApp.maxLivraison = newLivraisonNum;
+    }
+
+    // Basculer sur la livraison de destination
+    colisageApp.activeLivraison = newLivraisonNum;
+    colisageApp.selectedPackageId = pkg.id;
+
+    autoSaveColisage();
+    render();
+}
+
+/**
+ * Afficher les onglets de livraison
+ */
+function renderLivraisonTabs() {
+    let html = '<div class="colisage-livraison-tabs">';
+    for (let i = 1; i <= colisageApp.maxLivraison; i++) {
+        const count = colisageApp.packages.filter(p => (p.livraison_num || 1) === i).length;
+        const activeClass = colisageApp.activeLivraison === i ? ' active' : '';
+        html += `<button class="colisage-livraison-tab${activeClass}" onclick="switchLivraison(${i})">
+            Livraison ${i}${count > 0 ? ` <span class="colisage-livraison-count">(${count})</span>` : ''}
+        </button>`;
+    }
+    html += `<button class="colisage-livraison-tab-add" onclick="addLivraison()" title="Créer une nouvelle livraison">+ Nouvelle livraison</button>`;
+    html += '</div>';
+    return html;
+}
+
 // Initialisation quand le DOM est prêt
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof window.colisageData !== 'undefined') {
@@ -169,6 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         colisageApp.commandeId = window.colisageData.commandeId;
         colisageApp.token = window.colisageData.token;
         colisageApp.urlBase = window.colisageData.urlBase;
+        colisageApp.maxLivraison = window.colisageData.maxLivraison || 1;
         
         console.log('Colisage App initialisée:', colisageApp);
         
@@ -228,17 +291,27 @@ function loadExistingPackages() {
         if (data.success && data.data && data.data.packages) {
             // Charger les colis (avec leurs rowid de base de données)
             colisageApp.packages = data.data.packages;
-            
+
+            // S'assurer que chaque colis a un livraison_num (compatibilité ascendante)
+            colisageApp.packages.forEach(pkg => {
+                if (!pkg.livraison_num) pkg.livraison_num = 1;
+            });
+
             console.log('📦 Colis chargés depuis la base:', colisageApp.packages.length);
-            
+
+            // Calculer le nombre max de livraisons
+            const livraisonNums = colisageApp.packages.map(p => p.livraison_num || 1);
+            colisageApp.maxLivraison = livraisonNums.length > 0 ? Math.max(...livraisonNums) : 1;
+
             // NOUVEAU : Réindexer pour avoir des numéros séquentiels 1, 2, 3...
             reindexPackages();
-            
-            console.log('✅ Colis existants chargés et réindexés');
+
+            console.log('✅ Colis existants chargés et réindexés, livraisons:', colisageApp.maxLivraison);
         } else {
             console.log('ℹ️ Aucun colis existant trouvé');
             colisageApp.packages = [];
             colisageApp.nextPackageId = 1;
+            colisageApp.maxLivraison = window.colisageData.maxLivraison || 1;
         }
         
         render();
@@ -753,6 +826,11 @@ function renderPackageCard(pkg, showProductNameOnItems) {
 
     const isSelected = normalizePackageId(colisageApp.selectedPackageId) === normalizePackageId(pkg.id);
 
+    // Numérotation dans la livraison (1, 2, 3... par livraison)
+    const livraisonNum = pkg.livraison_num || 1;
+    const livraisonPackages = colisageApp.packages.filter(p => (p.livraison_num || 1) === livraisonNum);
+    const displayNum = livraisonPackages.indexOf(pkg) + 1;
+
     let html = `
         <div class="colis-item ${showProductNameOnItems ? 'colis-multi-product' : 'colis-under-product'} ${isSelected ? 'selected' : ''}"
              onclick="selectPackage('${pkg.id}')"
@@ -761,13 +839,21 @@ function renderPackageCard(pkg, showProductNameOnItems) {
                 <div class="colis-item-left">
                     <div class="colis-multiplier">${pkg.multiplier}×</div>
                     ${pkg.isFree ? '<div class="colis-type-badge">LIBRE</div>' : ''}
-                    <div class="colis-title">Colis #${pkg.id}</div>
+                    <div class="colis-title">Colis #${displayNum}</div>
                     <div class="colis-stats">
                         <span>Poids: <strong>${weightPerPackage.toFixed(1)} kg</strong>/colis</span>
                         <span>Surface: <strong>${surfacePerPackage.toFixed(2)} m²</strong>/colis</span>
                         <span>Total: <strong>${(weightPerPackage * pkg.multiplier).toFixed(1)} kg</strong></span>
                         <span>Articles: <strong>${pkg.items.length}</strong></span>
                     </div>
+                </div>
+                <div class="colis-livraison-move" onclick="event.stopPropagation()">
+                    <label style="font-size:0.75rem; color:#6c757d; margin-right:3px;">Livraison</label>
+                    <select class="colis-livraison-select" onchange="movePackageToLivraison(event, '${pkg.id}', parseInt(this.value))" title="Déplacer vers une autre livraison">
+                        ${Array.from({length: colisageApp.maxLivraison}, (_, i) => i + 1).map(n =>
+                            `<option value="${n}" ${n === (pkg.livraison_num || 1) ? 'selected' : ''}>L${n}</option>`
+                        ).join('')}
+                    </select>
                 </div>
                 <button class="btn-delete-colis" onclick="handleDeletePackage(event, '${pkg.id}')" title="Supprimer ce colis">×</button>
             </div>
@@ -821,21 +907,25 @@ function renderColisSummary() {
 
     const hasProducts = hasAvailableProducts();
     const remainingPieces = getTotalRemainingPieces();
-    
+
     console.log('🎨 Rendu des colis. IDs:', colisageApp.packages.map(p => p.id).join(', '));
     console.log('🎯 Colis sélectionné:', colisageApp.selectedPackageId);
-    
-    if (colisageApp.packages.length === 0) {
-        container.innerHTML = `
+
+    // Filtrer les colis de la livraison active
+    const activePackages = colisageApp.packages.filter(p => (p.livraison_num || 1) === colisageApp.activeLivraison);
+
+    let html = renderLivraisonTabs();
+
+    if (colisageApp.packages.length === 0 || activePackages.length === 0) {
+        html += `
             <div style="text-align: center; padding: 2rem 1rem; color: #6c757d; font-style: italic;">
-                ${hasProducts ? 'Aucun colis créé' : `Stock épuisé - ${remainingPieces} pièces restantes`}
+                ${hasProducts ? 'Aucun colis dans cette livraison' : `Stock épuisé - ${remainingPieces} pièces restantes`}
             </div>
         `;
+        container.innerHTML = html;
         return;
     }
 
-    let html = '';
-    
     if (!hasProducts) {
         html += `
             <div style="background: #fff3cd; color: #856404; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.85rem; text-align: center;">
@@ -843,7 +933,7 @@ function renderColisSummary() {
             </div>
         `;
     }
-    
+
     html += '<div class="colis-list">';
 
     // Regrouper les colis par section
@@ -858,8 +948,8 @@ function renderColisSummary() {
         });
     }
 
-    // Classer chaque colis dans sa section
-    colisageApp.packages.forEach(pkg => {
+    // Classer chaque colis (de la livraison active) dans sa section
+    activePackages.forEach(pkg => {
         const sectionIndex = getPackageSectionIndex(pkg);
         const packagesInSection = packagesBySection.get(sectionIndex) || [];
         packagesInSection.push(pkg);
@@ -1191,11 +1281,12 @@ function createNewPackage() {
         id: normalizePackageId(colisageApp.nextPackageId++),
         multiplier: 1,
         items: [],
-        isFree: false
+        isFree: false,
+        livraison_num: colisageApp.activeLivraison
     };
     colisageApp.packages.push(newPkg);
     colisageApp.selectedPackageId = newPkg.id;
-    console.log('✅ Nouveau colis standard créé avec ID:', newPkg.id);
+    console.log('✅ Nouveau colis standard créé avec ID:', newPkg.id, 'livraison:', newPkg.livraison_num);
     render();
 }
 
@@ -1207,11 +1298,12 @@ function createFreePackage() {
         id: normalizePackageId(colisageApp.nextPackageId++),
         multiplier: 1,
         items: [],
-        isFree: true
+        isFree: true,
+        livraison_num: colisageApp.activeLivraison
     };
     colisageApp.packages.push(newPkg);
     colisageApp.selectedPackageId = newPkg.id;
-    console.log('✅ Nouveau colis libre créé avec ID:', newPkg.id);
+    console.log('✅ Nouveau colis libre créé avec ID:', newPkg.id, 'livraison:', newPkg.livraison_num);
     render();
 }
 
@@ -1974,6 +2066,9 @@ window.quickSelectDetail = quickSelectDetail;
 window.setQuickQuantity = setQuickQuantity;
 window.setMaxQuantity = setMaxQuantity;
 window.saveColisage = saveColisage;
+window.switchLivraison = switchLivraison;
+window.addLivraison = addLivraison;
+window.movePackageToLivraison = movePackageToLivraison;
 
 // Exposer les fonctions d'édition des titres
 window.startEditCardTitle = startEditCardTitle;

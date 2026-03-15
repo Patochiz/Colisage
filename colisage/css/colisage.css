@@ -1371,3 +1371,78 @@
         padding-left: 8px;
     }
 }
+
+/* ============================================================
+   ONGLETS DE LIVRAISON
+   ============================================================ */
+
+.colisage-livraison-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #dee2e6;
+    align-items: center;
+}
+
+.colisage-livraison-tab {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #f8f9fa;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.colisage-livraison-tab:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.colisage-livraison-tab.active {
+    background: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+}
+
+.colisage-livraison-count {
+    font-size: 0.8em;
+    opacity: 0.85;
+}
+
+.colisage-livraison-tab-add {
+    padding: 0.35rem 0.75rem;
+    border: 1px dashed #6c757d;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #6c757d;
+    background: transparent;
+    font-size: 0.85rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.colisage-livraison-tab-add:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+/* Sélecteur de livraison sur les cartes colis */
+.colis-livraison-move {
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+.colis-livraison-select {
+    font-size: 0.78rem;
+    padding: 2px 4px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #495057;
+    cursor: pointer;
+}

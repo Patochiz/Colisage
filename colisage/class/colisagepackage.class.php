@@ -71,6 +71,11 @@ class ColisagePackage extends CommonObject
     public $total_surface = 0.0;
 
     /**
+     * @var int Numéro de livraison (1, 2, 3...)
+     */
+    public $livraison_num = 1;
+
+    /**
      * @var string Date de création
      */
     public $date_creation;
@@ -124,6 +129,7 @@ class ColisagePackage extends CommonObject
         $this->is_free = (int) $this->is_free;
         $this->total_weight = (float) $this->total_weight;
         $this->total_surface = (float) $this->total_surface;
+        $this->livraison_num = max(1, (int) $this->livraison_num);
 
         $now = dol_now();
 
@@ -133,6 +139,7 @@ class ColisagePackage extends CommonObject
         $sql .= "fk_commande,";
         $sql .= "multiplier,";
         $sql .= "is_free,";
+        $sql .= "livraison_num,";
         $sql .= "total_weight,";
         $sql .= "total_surface,";
         $sql .= "date_creation,";
@@ -141,6 +148,7 @@ class ColisagePackage extends CommonObject
         $sql .= " ".((int) $this->fk_commande).",";
         $sql .= " ".((int) $this->multiplier).",";
         $sql .= " ".((int) $this->is_free).",";
+        $sql .= " ".((int) $this->livraison_num).",";
         $sql .= " ".((float) $this->total_weight).",";
         $sql .= " ".((float) $this->total_surface).",";
         $sql .= " '".$this->db->idate($now)."',";
@@ -176,7 +184,7 @@ class ColisagePackage extends CommonObject
      */
     public function fetch($id)
     {
-        $sql = "SELECT rowid, fk_commande, multiplier, is_free, total_weight, total_surface,";
+        $sql = "SELECT rowid, fk_commande, multiplier, is_free, livraison_num, total_weight, total_surface,";
         $sql .= " date_creation, date_modification, fk_user_creat, fk_user_modif";
         $sql .= " FROM ".MAIN_DB_PREFIX.$this->table_element;
         $sql .= " WHERE rowid = ".((int) $id);
@@ -191,6 +199,7 @@ class ColisagePackage extends CommonObject
                 $this->fk_commande = $obj->fk_commande;
                 $this->multiplier = $obj->multiplier;
                 $this->is_free = $obj->is_free;
+                $this->livraison_num = isset($obj->livraison_num) ? (int) $obj->livraison_num : 1;
                 $this->total_weight = $obj->total_weight;
                 $this->total_surface = $obj->total_surface;
                 $this->date_creation = $this->db->jdate($obj->date_creation);
@@ -228,11 +237,13 @@ class ColisagePackage extends CommonObject
         $this->multiplier = max(1, (int) $this->multiplier);
         $this->total_weight = (float) $this->total_weight;
         $this->total_surface = (float) $this->total_surface;
+        $this->livraison_num = max(1, (int) $this->livraison_num);
 
         $this->db->begin();
 
         $sql = "UPDATE ".MAIN_DB_PREFIX.$this->table_element." SET";
         $sql .= " multiplier = ".((int) $this->multiplier).",";
+        $sql .= " livraison_num = ".((int) $this->livraison_num).",";
         $sql .= " total_weight = ".((float) $this->total_weight).",";
         $sql .= " total_surface = ".((float) $this->total_surface).",";
         $sql .= " date_modification = '".$this->db->idate(dol_now())."',";
