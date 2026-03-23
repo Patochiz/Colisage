@@ -62,6 +62,15 @@ if (!isModEnabled('colisage')) {
 // Debug mode - afficher les informations de debug si nécessaire
 $debug_mode = GETPOST('debug', 'int');
 
+// Migration automatique : ajouter livraison_num si la colonne est absente
+$resCheckCol = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."colisage_packages LIKE 'livraison_num'");
+if ($resCheckCol && $db->num_rows($resCheckCol) == 0) {
+    $db->query("ALTER TABLE ".MAIN_DB_PREFIX."colisage_packages ADD COLUMN livraison_num integer DEFAULT 1");
+}
+
+// Générer le token CSRF une seule fois pour toute la page
+$token = newToken();
+
 /*
  * View - Interface avec sélection et quantité rapides
  */
@@ -185,7 +194,7 @@ print '</div>';
 print '<div class="actions-right">';
 print '<button class="colisage-btn colisage-btn-secondary" onclick="window.history.back()">Annuler</button>';
 print '<button class="colisage-btn colisage-btn-primary" id="save-btn" title="Sauvegarde manuelle (l\'auto-sauvegarde est activée)">💾 Sauvegarder</button>';
-$ebsUrl = dol_buildpath('/colisage/ajax/generate_ebs_files.php', 1).'?id='.$id.'&token='.newToken();
+$ebsUrl = dol_buildpath('/colisage/ajax/generate_ebs_files.php', 1).'?id='.$id.'&token='.$token;
 print '<a href="'.dol_escape_htmltag($ebsUrl).'" class="colisage-btn colisage-btn-secondary" style="text-decoration: none;" title="Télécharger les fichiers .prj et .prv pour l\'imprimante EBS">';
 print '📦 Générer fichiers EBS';
 print '</a>';
@@ -210,7 +219,7 @@ print '</div>'; // End colisage-main-layout
 print '</div>'; // End colisage-container
 
 // Inclure les données JSON pour JavaScript (version améliorée)
-$token = newToken();
+// $token est déjà défini en début de page (un seul newToken() par page)
 ?>
 <script type="text/javascript">
 // Configuration globale pour le module Colisage (version optimisée)
