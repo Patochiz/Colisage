@@ -185,18 +185,14 @@ print '</div>';
 print '<div class="actions-right">';
 print '<button class="colisage-btn colisage-btn-secondary" onclick="window.history.back()">Annuler</button>';
 print '<button class="colisage-btn colisage-btn-primary" id="save-btn" title="Sauvegarde manuelle (l\'auto-sauvegarde est activée)">💾 Sauvegarder</button>';
+$ebsUrl = dol_buildpath('/colisage/ajax/generate_ebs_files.php', 1).'?id='.$id.'&token='.newToken();
+print '<a href="'.dol_escape_htmltag($ebsUrl).'" class="colisage-btn colisage-btn-secondary" style="text-decoration: none;" title="Télécharger les fichiers .prj et .prv pour l\'imprimante EBS">';
+print '📦 Générer fichiers EBS';
+print '</a>';
 print '<div id="save-indicator" style="display: none; margin-left: 10px; align-self: center;">';
 print '<span class="loading-spinner"></span> Sauvegarde...';
 print '</div>';
 print '</div>';
-print '</div>';
-
-// Bouton de génération des fichiers EBS
-$ebsUrl = dol_buildpath('/colisage/ajax/generate_ebs_files.php', 1).'?id='.$id.'&token='.newToken();
-print '<div style="margin-top: 0.75rem; text-align: right;">';
-print '<a href="'.dol_escape_htmltag($ebsUrl).'" class="colisage-btn colisage-btn-secondary" style="text-decoration: none;" title="Télécharger les fichiers .prj et .prv pour l\'imprimante EBS">';
-print '📦 Générer fichiers EBS (.prj / .prv)';
-print '</a>';
 print '</div>';
 
 // Liste des colis créés
