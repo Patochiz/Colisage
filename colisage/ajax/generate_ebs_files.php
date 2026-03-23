@@ -66,6 +66,17 @@ if ($files === false || empty($files)) {
 }
 
 // ---------------------------------------------------------------
+// Get commande ref (needed for ZIP path and fallback JSON)
+// ---------------------------------------------------------------
+require_once DOL_DOCUMENT_ROOT.'/commande/class/commande.class.php';
+$commande = new Commande($db);
+if ($commande->fetch($fk_commande) <= 0) {
+    http_response_code(500);
+    die('Commande introuvable');
+}
+$commandeRef = preg_replace('/[^A-Za-z0-9_\-]/', '_', $commande->ref);
+
+// ---------------------------------------------------------------
 // Build ZIP archive
 // ---------------------------------------------------------------
 if (!class_exists('ZipArchive')) {
@@ -81,12 +92,6 @@ if (!class_exists('ZipArchive')) {
     echo json_encode($output);
     exit;
 }
-
-// Get commande ref for the ZIP filename
-require_once DOL_DOCUMENT_ROOT.'/commande/class/commande.class.php';
-$commande = new Commande($db);
-$commande->fetch($fk_commande);
-$commandeRef = preg_replace('/[^A-Za-z0-9_\-]/', '_', $commande->ref);
 
 $tmpFile = tempnam(sys_get_temp_dir(), 'colisage_ebs_').'.zip';
 
