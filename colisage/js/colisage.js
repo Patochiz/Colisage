@@ -1194,9 +1194,9 @@ function renderColisEditor() {
                     <div class="free-form-row">
                         <input type="number" class="qty-input" id="qty-input-${normalizedPkgId}" placeholder="Qté" min="1" style="width: 50px;">
                         <span>×</span>
-                        <input type="number" class="qty-input" id="length-input-${normalizedPkgId}" placeholder="L" min="1" style="width: 60px;">
+                        <input type="number" class="qty-input" id="length-input-${normalizedPkgId}" placeholder="L" min="0" style="width: 60px;">
                         <span>×</span>
-                        <input type="number" class="qty-input" id="width-input-${normalizedPkgId}" placeholder="l" min="1" style="width: 60px;">
+                        <input type="number" class="qty-input" id="width-input-${normalizedPkgId}" placeholder="l" min="0" style="width: 60px;">
                         <input type="text" class="form-select" id="desc-input-${normalizedPkgId}" placeholder="Description" style="width: 80px;">
                         <input type="number" class="qty-input" id="weight-input-${normalizedPkgId}" placeholder="kg/u" step="0.01" min="0" title="Poids unitaire en kg" style="width: 60px;">
                     </div>
@@ -1815,13 +1815,18 @@ function addFreeItem(packageId) {
 
     const customName = customNameInput.value.trim();
     const quantity = parseInt(qtyInput.value);
-    const longueur = parseInt(lengthInput.value);
-    const largeur = parseInt(widthInput.value);
+    const longueur = lengthInput.value.trim() !== '' ? parseInt(lengthInput.value) : 0;
+    const largeur = widthInput.value.trim() !== '' ? parseInt(widthInput.value) : 0;
     const description = descInput.value.trim();
     const weight = parseFloat(weightInput.value) || 0;
 
-    if (!customName || !quantity || quantity <= 0 || !longueur || longueur <= 0 || !largeur || largeur <= 0) {
-        showMessage('⚠️ Veuillez remplir tous les champs obligatoires', 'error', 3000);
+    if (!customName || !quantity || quantity <= 0) {
+        showMessage('⚠️ Veuillez remplir le nom et la quantité', 'error', 3000);
+        return;
+    }
+
+    if (largeur > 0 && longueur <= 0) {
+        showMessage('⚠️ La largeur nécessite une longueur', 'error', 3000);
         return;
     }
 

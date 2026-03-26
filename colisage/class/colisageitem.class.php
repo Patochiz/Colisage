@@ -371,7 +371,11 @@ class ColisageItem extends CommonObject
         $this->largeur = (int) $largeur;
         $this->description = $description;
         $this->weight_unit = (float) $weight;
-        $this->surface_unit = ($longueur * $largeur) / 1000000.0;
+        if ($this->longueur > 0 && $this->largeur > 0) {
+            $this->surface_unit = ($longueur * $largeur) / 1000000.0;
+        } else {
+            $this->surface_unit = 0;
+        }
     }
 
     /**

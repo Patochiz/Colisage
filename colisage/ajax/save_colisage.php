@@ -231,7 +231,11 @@ if ($action === 'save_colisage') {
                     $item->largeur = (int) ($item_data['largeur'] ?? 0);
                     $item->description = $item_data['description'] ?? '';
                     $item->weight_unit = (float) ($item_data['weight'] ?? 0);
-                    $item->surface_unit = ($item->longueur * $item->largeur) / 1000000; // m²
+                    if ($item->longueur > 0 && $item->largeur > 0) {
+                        $item->surface_unit = ($item->longueur * $item->largeur) / 1000000; // m²
+                    } else {
+                        $item->surface_unit = 0;
+                    }
                     
                     // Check if it's a free item or standard item
                     if (!empty($item_data['productId']) && $item_data['productId'] !== 'free') {
