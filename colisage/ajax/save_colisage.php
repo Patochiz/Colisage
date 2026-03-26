@@ -662,12 +662,15 @@ function generateColisageHtmlList($commande_id, $db) {
             // Afficher chaque groupe de produits
             foreach ($packages_by_product as $product_key => $product_group) {
                 $product_name = $product_group['name'];
+                $is_free_group = (strpos($product_key, 'free_') === 0);
 
                 // Bloc produit avec page-break-inside: avoid pour ne pas couper un groupe de colis
                 $html .= '<div style="page-break-inside: avoid; margin: 0; padding: 0;">';
 
-                // Afficher le nom du produit (titre)
-                $html .= '<span style="font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
+                // Afficher le nom du produit (titre) uniquement pour les produits standards
+                if (!$is_free_group) {
+                    $html .= '<span style="font-style: italic; text-decoration: underline;">' . htmlspecialchars($product_name) . '</span><br>';
+                }
 
                 // Afficher tous les colis de ce produit
                 foreach ($product_group['packages'] as $pkg) {
@@ -698,8 +701,16 @@ function generateColisageHtmlList($commande_id, $db) {
                             $html .= str_repeat('&nbsp;', 18) . '+ ' . $qty_display;
                         }
 
-                        if (!empty($item->description)) {
-                            $html .= ' ' . htmlspecialchars($item->description);
+                        // Pour les items libres : custom_name inline + description entre ()
+                        if ($is_free_group) {
+                            $html .= ' ' . htmlspecialchars($item->custom_name ?: '');
+                            if (!empty($item->description) && $item->description !== 'Libre') {
+                                $html .= ' (' . htmlspecialchars($item->description) . ')';
+                            }
+                        } else {
+                            if (!empty($item->description)) {
+                                $html .= ' ' . htmlspecialchars($item->description);
+                            }
                         }
 
                         $html .= '<br>';
@@ -751,15 +762,19 @@ function generateColisageHtmlList($commande_id, $db) {
                 }
 
                 if ($item_index == 0) {
-                    // Premier item : "1 colis de 65u Trappes Métal..."
-                    $html .= $multiplier_text . $qty_display . ' <span style="font-style: italic;">' . htmlspecialchars($item_product_name) . '</span>';
+                    $html .= $multiplier_text . $qty_display . ' ' . htmlspecialchars($item_product_name);
                 } else {
-                    // Items suivants : "                  +35u Trappes Métal..."
-                    $html .= str_repeat('&nbsp;', 18) . '+' . $qty_display . ' <span style="font-style: italic;">' . htmlspecialchars($item_product_name) . '</span>';
+                    $html .= str_repeat('&nbsp;', 18) . '+' . $qty_display . ' ' . htmlspecialchars($item_product_name);
                 }
 
-                if (!empty($item->description)) {
-                    $html .= ' ' . htmlspecialchars($item->description);
+                if ($item->isFree()) {
+                    if (!empty($item->description) && $item->description !== 'Libre') {
+                        $html .= ' (' . htmlspecialchars($item->description) . ')';
+                    }
+                } else {
+                    if (!empty($item->description)) {
+                        $html .= ' ' . htmlspecialchars($item->description);
+                    }
                 }
 
                 $html .= '<br>';
