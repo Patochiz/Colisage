@@ -148,6 +148,7 @@ function installTables($db) {
             fk_commande     integer NOT NULL,
             multiplier      integer DEFAULT 1,
             is_free         tinyint DEFAULT 0,
+            livraison_num   integer DEFAULT 1,
             total_weight    decimal(10,3) DEFAULT 0,
             total_surface   decimal(10,3) DEFAULT 0,
             date_creation   datetime,
@@ -155,12 +156,16 @@ function installTables($db) {
             fk_user_creat   integer,
             fk_user_modif   integer
         ) ENGINE=innodb";
-        
+
         $resql = $db->query($sql);
         if (!$resql) {
             throw new Exception('Erreur création table colisage_packages: ' . $db->lasterror());
         }
         printSuccess('Table colisage_packages créée');
+
+        // Migration : ajouter livraison_num si absent (installations existantes)
+        $sql = "ALTER TABLE ".MAIN_DB_PREFIX."colisage_packages ADD COLUMN livraison_num integer DEFAULT 1";
+        $db->query($sql); // Erreur ignorée si la colonne existe déjà
         
         // Index pour table packages
         $sql = "CREATE INDEX IF NOT EXISTS idx_colisage_packages_commande ON ".MAIN_DB_PREFIX."colisage_packages (fk_commande)";
