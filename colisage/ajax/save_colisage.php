@@ -231,7 +231,11 @@ if ($action === 'save_colisage') {
                     $item->largeur = (int) ($item_data['largeur'] ?? 0);
                     $item->description = $item_data['description'] ?? '';
                     $item->weight_unit = (float) ($item_data['weight'] ?? 0);
-                    $item->surface_unit = ($item->longueur * $item->largeur) / 1000000; // m²
+                    if ($item->longueur > 0 && $item->largeur > 0) {
+                        $item->surface_unit = ($item->longueur * $item->largeur) / 1000000; // m²
+                    } else {
+                        $item->surface_unit = 0;
+                    }
                     
                     // Check if it's a free item or standard item
                     if (!empty($item_data['productId']) && $item_data['productId'] !== 'free') {
@@ -533,6 +537,7 @@ function generateColisageHtmlList($commande_id, $db) {
         $livr_packages_by_section = array();
         $livr_packages_by_section[-1] = array();
         $livr_packages_by_section['multi_ref'] = array();
+        $livr_packages_by_section['free'] = array();
         foreach ($sections as $index => $section) {
             $livr_packages_by_section[$index] = array();
         }
@@ -561,6 +566,9 @@ function generateColisageHtmlList($commande_id, $db) {
             } elseif (count($sections_in_package) == 1) {
                 $section_index = reset($sections_in_package);
                 $livr_packages_by_section[$section_index][] = $pkg;
+            } else {
+                // Colis 100% libre (aucune section standard)
+                $livr_packages_by_section['free'][] = $pkg;
             }
         }
 
@@ -576,6 +584,9 @@ function generateColisageHtmlList($commande_id, $db) {
         }
         if (!empty($livr_packages_by_section['multi_ref'])) {
             $displayed_sections[] = array('index' => 'multi_ref', 'titre' => 'Multi Ref', 'packages' => $livr_packages_by_section['multi_ref']);
+        }
+        if (!empty($livr_packages_by_section['free'])) {
+            $displayed_sections[] = array('index' => 'free', 'titre' => null, 'packages' => $livr_packages_by_section['free']);
         }
 
         debugLog("generateColisageHtmlList - Livraison {$current_livraison} - Sections affichées", count($displayed_sections));
@@ -672,15 +683,13 @@ function generateColisageHtmlList($commande_id, $db) {
                         // Formater les dimensions/quantité
                         $qty_display = '';
                         if ($item->largeur && $item->largeur > 0) {
-                            $qty_display = $item->quantity . ' × ' . $item->longueur . '×' . $item->largeur;
                             $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
-                            $qty_display .= ' <strong>' . number_format($surface_value, 2) . ' m²</strong>';
+                            $qty_display = $item->quantity . 'x' . $item->longueur . 'x' . $item->largeur . ' (' . number_format($surface_value, 2) . 'm²)';
                         } elseif ($item->longueur && $item->longueur > 0) {
-                            $qty_display = $item->quantity . ' × ' . $item->longueur;
                             $length_value = ($item->quantity * $item->longueur) / 1000;
-                            $qty_display .= ' <strong>' . number_format($length_value, 2) . ' ml</strong>';
+                            $qty_display = $item->quantity . 'x' . $item->longueur . ' (' . number_format($length_value, 2) . 'ml)';
                         } else {
-                            $qty_display = $item->quantity . ' unités <strong>' . $item->quantity . ' u</strong>';
+                            $qty_display = $item->quantity . 'u';
                         }
 
                         if ($item_index == 0) {
@@ -732,9 +741,11 @@ function generateColisageHtmlList($commande_id, $db) {
                 // Formater les dimensions/quantité
                 $qty_display = '';
                 if ($item->largeur && $item->largeur > 0) {
-                    $qty_display = $item->quantity . ' × ' . $item->longueur . '×' . $item->largeur;
+                    $surface_value = ($item->quantity * $item->longueur * $item->largeur) / 1000000;
+                    $qty_display = $item->quantity . 'x' . $item->longueur . 'x' . $item->largeur . ' (' . number_format($surface_value, 2) . 'm²)';
                 } elseif ($item->longueur && $item->longueur > 0) {
-                    $qty_display = $item->quantity . ' × ' . $item->longueur;
+                    $length_value = ($item->quantity * $item->longueur) / 1000;
+                    $qty_display = $item->quantity . 'x' . $item->longueur . ' (' . number_format($length_value, 2) . 'ml)';
                 } else {
                     $qty_display = $item->quantity . 'u';
                 }
