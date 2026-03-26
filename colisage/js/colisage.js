@@ -1837,7 +1837,7 @@ function addFreeItem(packageId) {
         quantity: quantity,
         longueur: longueur,
         largeur: largeur,
-        description: description || 'Libre',
+        description: description || '',
         weight: weight
     });
 
