@@ -466,9 +466,9 @@ function generateColisageHtmlList($commande_id, $db) {
             $product_name = $line->product_label ?: $line->label;
 
             if ($current_section !== null) {
-                $current_section['produits'][$line->rowid] = $product_name;
+                $current_section['produits'][$line->rowid] = array('name' => $product_name, 'fk_product' => (int)$line->fk_product);
             } else {
-                $produits_avant_premier_titre[$line->rowid] = $product_name;
+                $produits_avant_premier_titre[$line->rowid] = array('name' => $product_name, 'fk_product' => (int)$line->fk_product);
             }
         }
     }
@@ -478,16 +478,35 @@ function generateColisageHtmlList($commande_id, $db) {
         $sections[] = $current_section;
     }
 
-    // 2. Mapper chaque commandedet_id vers sa section_index
-    $commandedet_to_section = array(); // commandedet_id => section_index (-1 = avant premier titre, null = libre)
+    // Post-traitement : fusionner les sections avec le même titre
+    $merged_sections = array();
+    $section_title_to_index = array();
 
-    foreach ($produits_avant_premier_titre as $rowid => $name) {
+    foreach ($sections as $section) {
+        $titre = $section['titre'];
+        if (isset($section_title_to_index[$titre])) {
+            $existing_index = $section_title_to_index[$titre];
+            $merged_sections[$existing_index]['produits'] = $merged_sections[$existing_index]['produits'] + $section['produits'];
+        } else {
+            $section_title_to_index[$titre] = count($merged_sections);
+            $merged_sections[] = $section;
+        }
+    }
+    $sections = $merged_sections;
+
+    // 2. Mapper chaque commandedet_id vers sa section_index et son fk_product
+    $commandedet_to_section = array();    // commandedet_id => section_index (-1 = avant premier titre, null = libre)
+    $commandedet_to_fk_product = array(); // commandedet_id => fk_product (référence catalogue)
+
+    foreach ($produits_avant_premier_titre as $rowid => $info) {
         $commandedet_to_section[$rowid] = -1;
+        $commandedet_to_fk_product[$rowid] = $info['fk_product'];
     }
 
     foreach ($sections as $section_index => $section) {
-        foreach ($section['produits'] as $rowid => $name) {
+        foreach ($section['produits'] as $rowid => $info) {
             $commandedet_to_section[$rowid] = $section_index;
+            $commandedet_to_fk_product[$rowid] = $info['fk_product'];
         }
     }
 
@@ -612,13 +631,16 @@ function generateColisageHtmlList($commande_id, $db) {
                 continue;
             }
 
-            // Compter les produits différents dans ce colis
+            // Compter les produits différents dans ce colis (par fk_product, référence catalogue)
             $product_ids = array();
             foreach ($pkg->items as $item) {
                 if ($item->isFree()) {
                     $product_ids[] = 'free_' . $item->custom_name;
                 } else {
-                    $product_ids[] = 'prod_' . $item->fk_commandedet;
+                    $fk_prod = isset($commandedet_to_fk_product[$item->fk_commandedet])
+                        ? $commandedet_to_fk_product[$item->fk_commandedet]
+                        : $item->fk_commandedet;
+                    $product_ids[] = 'fkprod_' . $fk_prod;
                 }
             }
             $unique_products = array_unique($product_ids);
@@ -644,7 +666,10 @@ function generateColisageHtmlList($commande_id, $db) {
                     $product_key = 'free_' . $first_item->custom_name;
                     $product_name = $first_item->custom_name ?: 'Article libre';
                 } else {
-                    $product_key = 'prod_' . $first_item->fk_commandedet;
+                    $fk_prod = isset($commandedet_to_fk_product[$first_item->fk_commandedet])
+                        ? $commandedet_to_fk_product[$first_item->fk_commandedet]
+                        : $first_item->fk_commandedet;
+                    $product_key = 'fkprod_' . $fk_prod;
                     $product_name = isset($product_names[$first_item->fk_commandedet])
                         ? $product_names[$first_item->fk_commandedet]
                         : 'Produit ID:' . $first_item->fk_commandedet;

@@ -355,6 +355,7 @@ foreach ($object->lines as $line) {
             'weight' => $product_weight,
             'weight_units' => $product_weight_units,
             'commandedet_id' => $line->rowid,
+            'fk_product' => (int) $line->fk_product,
             'details' => $details
         );
         
@@ -375,10 +376,36 @@ if ($currentSection !== null) {
     $sectionsData[] = $currentSection;
 }
 
+// Conserver les sections originales (avant fusion) pour le récapitulatif des produits
+$sectionsDataOriginal = $sectionsData;
+
+// Post-traitement : fusionner les sections avec le même titre
+$mergedSections = array();
+$sectionTitleToIndex = array();
+
+foreach ($sectionsData as $section) {
+    $titre = $section['titre'];
+    if (isset($sectionTitleToIndex[$titre])) {
+        // Titre déjà existant : fusionner les produits dans la section existante
+        $existingIndex = $sectionTitleToIndex[$titre];
+        $mergedSections[$existingIndex]['produits'] = array_merge(
+            $mergedSections[$existingIndex]['produits'],
+            $section['produits']
+        );
+    } else {
+        // Nouveau titre : créer la section
+        $sectionTitleToIndex[$titre] = count($mergedSections);
+        $mergedSections[] = $section;
+    }
+}
+
+$sectionsData = $mergedSections;
+
 echo 'window.colisageData.productData = ' . json_encode($productData) . ';';
 
 // NOUVEAU : Passer la structure hiérarchique au JavaScript
 echo 'window.colisageData.sections = ' . json_encode($sectionsData) . ';';
+echo 'window.colisageData.sectionsOriginal = ' . json_encode($sectionsDataOriginal) . ';';
 echo 'window.colisageData.produitsAvantPremierTitre = ' . json_encode($produitsAvantPremierTitre) . ';';
 
 // Informations de debug

@@ -452,9 +452,10 @@ function renderProductsSummary() {
         html += renderProductsGroup(window.colisageData.produitsAvantPremierTitre, null, null, null);
     }
     
-    // NOUVEAU : Afficher les sections avec leurs produits
-    if (window.colisageData.sections && window.colisageData.sections.length > 0) {
-        window.colisageData.sections.forEach((section, sectionIndex) => {
+    // Afficher les sections avec leurs produits (sections originales non fusionnées)
+    const sectionsForDisplay = window.colisageData.sectionsOriginal || window.colisageData.sections;
+    if (sectionsForDisplay && sectionsForDisplay.length > 0) {
+        sectionsForDisplay.forEach((section, sectionIndex) => {
             html += renderProductsGroup(section.produits, section.titre, section.description, sectionIndex);
         });
     } else {
@@ -600,12 +601,13 @@ function renderProductsGroup(productIds, titre = null, description = null, secti
 window.startEditCardTitle = function(sectionIndex) {
     console.log('✏️ Démarrage édition titre section', sectionIndex);
     
-    const section = window.colisageData.sections[sectionIndex];
+    const sectionsRef = window.colisageData.sectionsOriginal || window.colisageData.sections;
+    const section = sectionsRef[sectionIndex];
     if (!section) {
         console.error('❌ Section introuvable:', sectionIndex);
         return;
     }
-    
+
     const rowid = section.rowid;
     if (!rowid) {
         showMessage('❌ Impossible de modifier ce titre (ID manquant)', 'error', 3000);
@@ -660,7 +662,8 @@ window.startEditCardTitle = function(sectionIndex) {
 window.saveCardTitle = function(sectionIndex) {
     console.log('💾 Sauvegarde titre section', sectionIndex);
     
-    const section = window.colisageData.sections[sectionIndex];
+    const sectionsRef = window.colisageData.sectionsOriginal || window.colisageData.sections;
+    const section = sectionsRef[sectionIndex];
     if (!section) {
         console.error('❌ Section introuvable:', sectionIndex);
         showMessage('❌ Erreur: Section introuvable', 'error', 3000);
@@ -995,10 +998,16 @@ function renderColisSummary() {
         const multiProductPackages = []; // Colis avec plusieurs produits différents
 
         section.packages.forEach(pkg => {
-            // Compter les produits différents dans ce colis
-            const uniqueProductIds = new Set(pkg.items.map(item => item.productId));
+            // Comparer par fk_product (référence catalogue) plutôt que par productId (ligne de commande)
+            const uniqueCatalogProducts = new Set(pkg.items.map(item => {
+                if (item.productId && item.productId.startsWith('prod_')) {
+                    const prodData = colisageApp.productData[item.productId];
+                    return prodData?.fk_product ?? item.productId;
+                }
+                return item.productId;
+            }));
 
-            if (uniqueProductIds.size === 1) {
+            if (uniqueCatalogProducts.size === 1) {
                 monoProductPackages.push(pkg);
             } else {
                 multiProductPackages.push(pkg);
@@ -1011,20 +1020,21 @@ function renderColisSummary() {
             const packagesByProduct = new Map();
 
             monoProductPackages.forEach(pkg => {
-                // Prendre le premier item pour déterminer le produit
                 const firstItem = pkg.items[0];
-                const productId = firstItem.productId;
-                const productName = firstItem.productId.startsWith('prod_')
-                    ? colisageApp.productData[firstItem.productId]?.name || 'Produit inconnu'
-                    : firstItem.customName || 'Article libre';
+                const prodData = firstItem.productId.startsWith('prod_')
+                    ? colisageApp.productData[firstItem.productId]
+                    : null;
+                // Clé de groupe : fk_product (référence catalogue) ou productId en fallback
+                const groupKey = prodData?.fk_product ?? firstItem.productId;
+                const productName = prodData?.name || firstItem.customName || 'Article libre';
 
-                if (!packagesByProduct.has(productId)) {
-                    packagesByProduct.set(productId, {
+                if (!packagesByProduct.has(groupKey)) {
+                    packagesByProduct.set(groupKey, {
                         name: productName,
                         packages: []
                     });
                 }
-                packagesByProduct.get(productId).packages.push(pkg);
+                packagesByProduct.get(groupKey).packages.push(pkg);
             });
 
             // Afficher chaque groupe de produits
