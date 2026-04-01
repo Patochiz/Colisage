@@ -355,6 +355,7 @@ foreach ($object->lines as $line) {
             'weight' => $product_weight,
             'weight_units' => $product_weight_units,
             'commandedet_id' => $line->rowid,
+            'fk_product' => (int) $line->fk_product,
             'details' => $details
         );
         

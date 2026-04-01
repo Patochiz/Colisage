@@ -995,10 +995,16 @@ function renderColisSummary() {
         const multiProductPackages = []; // Colis avec plusieurs produits différents
 
         section.packages.forEach(pkg => {
-            // Compter les produits différents dans ce colis
-            const uniqueProductIds = new Set(pkg.items.map(item => item.productId));
+            // Comparer par fk_product (référence catalogue) plutôt que par productId (ligne de commande)
+            const uniqueCatalogProducts = new Set(pkg.items.map(item => {
+                if (item.productId && item.productId.startsWith('prod_')) {
+                    const prodData = colisageApp.productData[item.productId];
+                    return prodData?.fk_product ?? item.productId;
+                }
+                return item.productId;
+            }));
 
-            if (uniqueProductIds.size === 1) {
+            if (uniqueCatalogProducts.size === 1) {
                 monoProductPackages.push(pkg);
             } else {
                 multiProductPackages.push(pkg);
@@ -1011,20 +1017,21 @@ function renderColisSummary() {
             const packagesByProduct = new Map();
 
             monoProductPackages.forEach(pkg => {
-                // Prendre le premier item pour déterminer le produit
                 const firstItem = pkg.items[0];
-                const productId = firstItem.productId;
-                const productName = firstItem.productId.startsWith('prod_')
-                    ? colisageApp.productData[firstItem.productId]?.name || 'Produit inconnu'
-                    : firstItem.customName || 'Article libre';
+                const prodData = firstItem.productId.startsWith('prod_')
+                    ? colisageApp.productData[firstItem.productId]
+                    : null;
+                // Clé de groupe : fk_product (référence catalogue) ou productId en fallback
+                const groupKey = prodData?.fk_product ?? firstItem.productId;
+                const productName = prodData?.name || firstItem.customName || 'Article libre';
 
-                if (!packagesByProduct.has(productId)) {
-                    packagesByProduct.set(productId, {
+                if (!packagesByProduct.has(groupKey)) {
+                    packagesByProduct.set(groupKey, {
                         name: productName,
                         packages: []
                     });
                 }
-                packagesByProduct.get(productId).packages.push(pkg);
+                packagesByProduct.get(groupKey).packages.push(pkg);
             });
 
             // Afficher chaque groupe de produits
