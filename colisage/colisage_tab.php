@@ -375,6 +375,28 @@ if ($currentSection !== null) {
     $sectionsData[] = $currentSection;
 }
 
+// Post-traitement : fusionner les sections avec le même titre
+$mergedSections = array();
+$sectionTitleToIndex = array();
+
+foreach ($sectionsData as $section) {
+    $titre = $section['titre'];
+    if (isset($sectionTitleToIndex[$titre])) {
+        // Titre déjà existant : fusionner les produits dans la section existante
+        $existingIndex = $sectionTitleToIndex[$titre];
+        $mergedSections[$existingIndex]['produits'] = array_merge(
+            $mergedSections[$existingIndex]['produits'],
+            $section['produits']
+        );
+    } else {
+        // Nouveau titre : créer la section
+        $sectionTitleToIndex[$titre] = count($mergedSections);
+        $mergedSections[] = $section;
+    }
+}
+
+$sectionsData = $mergedSections;
+
 echo 'window.colisageData.productData = ' . json_encode($productData) . ';';
 
 // NOUVEAU : Passer la structure hiérarchique au JavaScript
