@@ -486,10 +486,7 @@ function generateColisageHtmlList($commande_id, $db) {
         $titre = $section['titre'];
         if (isset($section_title_to_index[$titre])) {
             $existing_index = $section_title_to_index[$titre];
-            $merged_sections[$existing_index]['produits'] = array_merge(
-                $merged_sections[$existing_index]['produits'],
-                $section['produits']
-            );
+            $merged_sections[$existing_index]['produits'] = $merged_sections[$existing_index]['produits'] + $section['produits'];
         } else {
             $section_title_to_index[$titre] = count($merged_sections);
             $merged_sections[] = $section;
