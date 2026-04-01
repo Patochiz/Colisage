@@ -376,6 +376,9 @@ if ($currentSection !== null) {
     $sectionsData[] = $currentSection;
 }
 
+// Conserver les sections originales (avant fusion) pour le récapitulatif des produits
+$sectionsDataOriginal = $sectionsData;
+
 // Post-traitement : fusionner les sections avec le même titre
 $mergedSections = array();
 $sectionTitleToIndex = array();
@@ -402,6 +405,7 @@ echo 'window.colisageData.productData = ' . json_encode($productData) . ';';
 
 // NOUVEAU : Passer la structure hiérarchique au JavaScript
 echo 'window.colisageData.sections = ' . json_encode($sectionsData) . ';';
+echo 'window.colisageData.sectionsOriginal = ' . json_encode($sectionsDataOriginal) . ';';
 echo 'window.colisageData.produitsAvantPremierTitre = ' . json_encode($produitsAvantPremierTitre) . ';';
 
 // Informations de debug

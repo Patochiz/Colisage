@@ -452,9 +452,10 @@ function renderProductsSummary() {
         html += renderProductsGroup(window.colisageData.produitsAvantPremierTitre, null, null, null);
     }
     
-    // NOUVEAU : Afficher les sections avec leurs produits
-    if (window.colisageData.sections && window.colisageData.sections.length > 0) {
-        window.colisageData.sections.forEach((section, sectionIndex) => {
+    // Afficher les sections avec leurs produits (sections originales non fusionnées)
+    const sectionsForDisplay = window.colisageData.sectionsOriginal || window.colisageData.sections;
+    if (sectionsForDisplay && sectionsForDisplay.length > 0) {
+        sectionsForDisplay.forEach((section, sectionIndex) => {
             html += renderProductsGroup(section.produits, section.titre, section.description, sectionIndex);
         });
     } else {
@@ -600,12 +601,13 @@ function renderProductsGroup(productIds, titre = null, description = null, secti
 window.startEditCardTitle = function(sectionIndex) {
     console.log('✏️ Démarrage édition titre section', sectionIndex);
     
-    const section = window.colisageData.sections[sectionIndex];
+    const sectionsRef = window.colisageData.sectionsOriginal || window.colisageData.sections;
+    const section = sectionsRef[sectionIndex];
     if (!section) {
         console.error('❌ Section introuvable:', sectionIndex);
         return;
     }
-    
+
     const rowid = section.rowid;
     if (!rowid) {
         showMessage('❌ Impossible de modifier ce titre (ID manquant)', 'error', 3000);
@@ -660,7 +662,8 @@ window.startEditCardTitle = function(sectionIndex) {
 window.saveCardTitle = function(sectionIndex) {
     console.log('💾 Sauvegarde titre section', sectionIndex);
     
-    const section = window.colisageData.sections[sectionIndex];
+    const sectionsRef = window.colisageData.sectionsOriginal || window.colisageData.sections;
+    const section = sectionsRef[sectionIndex];
     if (!section) {
         console.error('❌ Section introuvable:', sectionIndex);
         showMessage('❌ Erreur: Section introuvable', 'error', 3000);
