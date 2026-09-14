@@ -56,9 +56,31 @@ if (empty($fk_commande)) {
 }
 
 // ---------------------------------------------------------------
+// Read optional overrides from POST (dialog flow)
+// ---------------------------------------------------------------
+$text1Override = null;
+$chantierOverrides = array();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (GETPOST('text1_override', 'restricthtml') !== null && GETPOST('text1_override', 'restricthtml') !== '') {
+        $text1Override = GETPOST('text1_override', 'restricthtml');
+    }
+
+    $overridesJson = GETPOST('chantier_overrides', 'restricthtml');
+    if (!empty($overridesJson)) {
+        $decoded = json_decode($overridesJson, true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $key => $value) {
+                $chantierOverrides[strip_tags((string) $key)] = strip_tags((string) $value);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------
 // Generate files
 // ---------------------------------------------------------------
-$files = generateColisageEBSFiles($fk_commande);
+$files = generateColisageEBSFiles($fk_commande, $text1Override, $chantierOverrides);
 
 if ($files === false || empty($files)) {
     http_response_code(500);
