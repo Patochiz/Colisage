@@ -194,10 +194,9 @@ print '</div>';
 print '<div class="actions-right">';
 print '<button class="colisage-btn colisage-btn-secondary" onclick="window.history.back()">Annuler</button>';
 print '<button class="colisage-btn colisage-btn-primary" id="save-btn" title="Sauvegarde manuelle (l\'auto-sauvegarde est activée)">💾 Sauvegarder</button>';
-$ebsUrl = dol_buildpath('/colisage/ajax/generate_ebs_files.php', 1).'?id='.$id.'&token='.$token;
-print '<a href="'.dol_escape_htmltag($ebsUrl).'" class="colisage-btn colisage-btn-secondary" style="text-decoration: none;" title="Télécharger les fichiers .prj et .prv pour l\'imprimante EBS">';
+print '<button type="button" class="colisage-btn colisage-btn-secondary" id="btn-generate-ebs" title="Télécharger les fichiers .prj et .prv pour l\'imprimante EBS">';
 print '📦 Générer fichiers EBS';
-print '</a>';
+print '</button>';
 print '<div id="save-indicator" style="display: none; margin-left: 10px; align-self: center;">';
 print '<span class="loading-spinner"></span> Sauvegarde...';
 print '</div>';
@@ -490,6 +489,133 @@ setTimeout(function() {
         header.appendChild(helpBtn);
     }
 }, 1000);
+</script>
+
+<script type="text/javascript">
+(function() {
+    var ebsBaseUrl = <?php echo json_encode(dol_buildpath('/colisage/ajax', 1)); ?>;
+    var ebsCommandeId = <?php echo json_encode($id); ?>;
+    var ebsToken = <?php echo json_encode($token); ?>;
+
+    $('#btn-generate-ebs').on('click', function() {
+        var $btn = $(this);
+        $btn.prop('disabled', true).text('Chargement...');
+
+        $.ajax({
+            url: ebsBaseUrl + '/get_ebs_chantiers.php',
+            data: { id: ebsCommandeId, token: ebsToken },
+            dataType: 'json',
+            success: function(data) {
+                $btn.prop('disabled', false).text('📦 Générer fichiers EBS');
+
+                if (!data.chantiers || data.chantiers.length === 0) {
+                    ebsSubmit(null, {});
+                    return;
+                }
+
+                ebsShowDialog(data.text1, data.text1, data.chantiers, 0, {});
+            },
+            error: function() {
+                $btn.prop('disabled', false).text('📦 Générer fichiers EBS');
+                alert('Erreur lors du chargement des données EBS');
+            }
+        });
+    });
+
+    function ebsShowDialog(text1, originalText1, chantiers, index, overrides) {
+        var ch = chantiers[index];
+        var isLast = (index === chantiers.length - 1);
+        var total = chantiers.length;
+
+        var $dlg = $('<div>');
+
+        var $g1 = $('<div>').css('margin-bottom', '15px');
+        $('<label>').css({ 'font-weight': 'bold', display: 'block', 'margin-bottom': '5px' })
+            .text('Texte 1 — Client / Ville :').appendTo($g1);
+        $('<input type="text" id="ebs-dlg-text1">').css({ width: '100%', padding: '8px', 'font-size': '14px', 'box-sizing': 'border-box' })
+            .val(text1).appendTo($g1);
+        $g1.appendTo($dlg);
+
+        var $g2 = $('<div>').css('margin-bottom', '15px');
+        $('<label>').css({ 'font-weight': 'bold', display: 'block', 'margin-bottom': '5px' })
+            .text('Texte 2 — Destination chantier :').appendTo($g2);
+        $('<input type="text" id="ebs-dlg-text2">').css({ width: '100%', padding: '8px', 'font-size': '14px', 'box-sizing': 'border-box' })
+            .val(ch.text2).appendTo($g2);
+        $g2.appendTo($dlg);
+
+        $('<div>').css({ color: '#666', 'font-size': '0.9em', 'margin-top': '10px' })
+            .text(ch.count + ' colis pour ce chantier').appendTo($dlg);
+
+        var buttons = [];
+
+        if (isLast) {
+            buttons.push({
+                text: 'Générer',
+                'class': 'button',
+                click: function() {
+                    var t1 = $('#ebs-dlg-text1').val();
+                    var t2 = $('#ebs-dlg-text2').val();
+                    if (t2 !== ch.text2) {
+                        overrides[ch.text2] = t2;
+                    }
+                    $(this).dialog('close');
+
+                    var t1Changed = (t1 !== originalText1);
+                    var hasOverrides = Object.keys(overrides).length > 0;
+                    ebsSubmit(t1Changed ? t1 : null, overrides);
+                }
+            });
+        } else {
+            buttons.push({
+                text: 'Suivant (' + (index + 2) + '/' + total + ')',
+                'class': 'button',
+                click: function() {
+                    var t1 = $('#ebs-dlg-text1').val();
+                    var t2 = $('#ebs-dlg-text2').val();
+                    if (t2 !== ch.text2) {
+                        overrides[ch.text2] = t2;
+                    }
+                    $(this).dialog('close');
+                    ebsShowDialog(t1, originalText1, chantiers, index + 1, overrides);
+                }
+            });
+        }
+
+        buttons.push({
+            text: 'Annuler',
+            click: function() {
+                $(this).dialog('close');
+            }
+        });
+
+        $dlg.dialog({
+            title: 'EBS — Chantier ' + (index + 1) + '/' + total + (ch.text2 ? ' : ' + ch.text2 : ''),
+            modal: true,
+            width: 500,
+            buttons: buttons,
+            close: function() {
+                $(this).dialog('destroy').remove();
+            }
+        });
+    }
+
+    function ebsSubmit(text1Override, chantierOverrides) {
+        var $form = $('<form>').attr({ method: 'POST', action: ebsBaseUrl + '/generate_ebs_files.php' }).css('display', 'none');
+        $('<input>').attr({ type: 'hidden', name: 'id' }).val(ebsCommandeId).appendTo($form);
+        $('<input>').attr({ type: 'hidden', name: 'token' }).val(ebsToken).appendTo($form);
+
+        if (text1Override !== null) {
+            $('<input>').attr({ type: 'hidden', name: 'text1_override' }).val(text1Override).appendTo($form);
+        }
+        if (Object.keys(chantierOverrides).length > 0) {
+            $('<input>').attr({ type: 'hidden', name: 'chantier_overrides' }).val(JSON.stringify(chantierOverrides)).appendTo($form);
+        }
+
+        $form.appendTo('body');
+        $form[0].submit();
+        setTimeout(function() { $form.remove(); }, 2000);
+    }
+})();
 </script>
 
 <?php

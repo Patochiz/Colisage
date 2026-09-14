@@ -433,10 +433,12 @@ function formatWeightWithUnit($weight, $unit_id = null)
  * LineDivider : positioned at max(width_text1, width_text2)
  * Text 3 x   : LineDivider x + 5 (divider width) + 5 (margin)
  *
- * @param int $fk_commande  ID de la commande
+ * @param int   $fk_commande       ID de la commande
+ * @param string|null $text1Override   Override for Text 1 (null = use default)
+ * @param array  $chantierOverrides   Map original_text2 => new_text2
  * @return array|false      Associative array [filename => content_string] or false on error
  */
-function generateColisageEBSFiles($fk_commande)
+function generateColisageEBSFiles($fk_commande, $text1Override = null, $chantierOverrides = array())
 {
     global $db;
 
@@ -469,6 +471,10 @@ function generateColisageEBSFiles($fk_commande)
             $dept        = substr($zip, 0, 2);
             $text1       = $contactName.' / '.$city.' ('.$dept.')';
         }
+    }
+
+    if ($text1Override !== null) {
+        $text1 = $text1Override;
     }
 
     // ---------------------------------------------------------------
@@ -529,6 +535,10 @@ function generateColisageEBSFiles($fk_commande)
                 $text2 = $sectionMap[(int) $item->fk_commandedet];
                 break;
             }
+        }
+
+        if (!empty($chantierOverrides) && array_key_exists($text2, $chantierOverrides)) {
+            $text2 = $chantierOverrides[$text2];
         }
 
         // --- Build Text 3 : {qty}x{longueur} for each item, joined by + ---
