@@ -266,7 +266,12 @@ foreach ($object->lines as $line) {
             // Sauvegarder la section précédente
             $sectionsData[] = $currentSection;
         }
-        
+
+        // Charger explicitement les extrafields de la ligne (fetch_lines ne les charge pas toujours)
+        if (empty($line->array_options) || !isset($line->array_options['options_ref_chantier'])) {
+            $line->fetch_optionals();
+        }
+
         // Récupérer l'extrafield ref_chantier
         $ref_chantier = '';
         if (!empty($line->array_options['options_ref_chantier'])) {

@@ -444,6 +444,11 @@ function generateColisageHtmlList($commande_id, $db) {
                 $sections[] = $current_section;
             }
 
+            // Charger explicitement les extrafields si nécessaire
+            if (empty($line->array_options) || !isset($line->array_options['options_ref_chantier'])) {
+                $line->fetch_optionals();
+            }
+
             // Récupérer le titre
             $ref_chantier = '';
             if (!empty($line->array_options['options_ref_chantier'])) {
