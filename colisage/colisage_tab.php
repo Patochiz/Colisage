@@ -266,33 +266,37 @@ foreach ($object->lines as $line) {
             // Sauvegarder la section précédente
             $sectionsData[] = $currentSection;
         }
-        
-        // Récupérer l'extrafield ref_chantier
-        $ref_chantier = '';
-        if (!empty($line->array_options['options_ref_chantier'])) {
-            $ref_chantier = $line->array_options['options_ref_chantier'];
+
+        // Charger explicitement les extrafields de la ligne (fetch_lines ne les charge pas toujours)
+        if (empty($line->array_options) || !isset($line->array_options['options_ref_commande'])) {
+            $line->fetch_optionals();
         }
 
-        // Logique simplifiée : ref_chantier en priorité, sinon description de la ligne
-        if (!empty($ref_chantier)) {
-            $titre_affiche = $ref_chantier;
+        // Récupérer l'extrafield ref_commande (titre de section)
+        $ref_commande = '';
+        if (!empty($line->array_options['options_ref_commande'])) {
+            $ref_commande = $line->array_options['options_ref_commande'];
+        }
+
+        // ref_commande en priorité, sinon description de la ligne
+        if (!empty($ref_commande)) {
+            $titre_affiche = $ref_commande;
         } else {
-            // Utiliser la description de la ligne (desc ou description)
             $titre_affiche = !empty($line->desc) ? $line->desc : (!empty($line->description) ? $line->description : '');
         }
-        
+
         // Créer une nouvelle section
         $currentSection = array(
             'titre' => $titre_affiche,
-            'titre_original' => $line->label, // Titre original de la ligne
-            'ref_chantier' => $ref_chantier,  // Extrafield ref_chantier
+            'titre_original' => $line->label,
+            'ref_commande' => $ref_commande,
             'rowid' => $line->rowid,          // ID de la ligne pour pouvoir la mettre à jour
             'rang' => $line->rang,
             'produits' => array()
         );
         
         if ($debug_mode) {
-            error_log("DEBUG COLISAGE - Titre de section détecté (Service ID=361): titre='{$titre_affiche}' (ref_chantier: '{$ref_chantier}', desc: '{$line->desc}', rowid: {$line->rowid})");
+            error_log("DEBUG COLISAGE - Titre de section détecté (Service ID=361): titre='{$titre_affiche}' (ref_commande: '{$ref_commande}', desc: '{$line->desc}', rowid: {$line->rowid})");
         }
         
         continue; // Ne pas traiter comme un produit

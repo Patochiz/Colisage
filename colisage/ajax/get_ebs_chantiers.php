@@ -76,7 +76,7 @@ if (!empty($contactIds)) {
 // ---------------------------------------------------------------
 $sectionMap = array();
 $sql  = "SELECT cd.rowid, cd.rang, cd.product_type, cd.fk_product, cd.description,";
-$sql .= " cde.ref_chantier";
+$sql .= " cde.ref_commande";
 $sql .= " FROM ".MAIN_DB_PREFIX."commandedet cd";
 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."commandedet_extrafields cde ON cde.fk_object = cd.rowid";
 $sql .= " WHERE cd.fk_commande = ".((int) $fk_commande);
@@ -87,7 +87,7 @@ if ($resql) {
     $currentSection = '';
     while ($obj = $db->fetch_object($resql)) {
         if ((int) $obj->fk_product === 361 && (int) $obj->product_type === 1) {
-            $currentSection = !empty($obj->ref_chantier) ? $obj->ref_chantier : $obj->description;
+            $currentSection = !empty($obj->ref_commande) ? $obj->ref_commande : $obj->description;
         }
         $sectionMap[(int) $obj->rowid] = $currentSection;
     }

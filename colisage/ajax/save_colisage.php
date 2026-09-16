@@ -444,13 +444,18 @@ function generateColisageHtmlList($commande_id, $db) {
                 $sections[] = $current_section;
             }
 
-            // Récupérer le titre
-            $ref_chantier = '';
-            if (!empty($line->array_options['options_ref_chantier'])) {
-                $ref_chantier = $line->array_options['options_ref_chantier'];
+            // Charger explicitement les extrafields si nécessaire
+            if (empty($line->array_options) || !isset($line->array_options['options_ref_commande'])) {
+                $line->fetch_optionals();
             }
 
-            $titre_affiche = !empty($ref_chantier) ? $ref_chantier : (!empty($line->desc) ? $line->desc : (!empty($line->description) ? $line->description : ''));
+            // Récupérer le titre (ref_commande en priorité)
+            $ref_commande = '';
+            if (!empty($line->array_options['options_ref_commande'])) {
+                $ref_commande = $line->array_options['options_ref_commande'];
+            }
+
+            $titre_affiche = !empty($ref_commande) ? $ref_commande : (!empty($line->desc) ? $line->desc : (!empty($line->description) ? $line->description : ''));
 
             // Créer nouvelle section
             $current_section = array(
