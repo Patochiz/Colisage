@@ -716,7 +716,7 @@ window.saveCardTitle = function(sectionIndex) {
             
             // Mettre à jour les données locales
             section.titre = newTitle;
-            section.ref_chantier = newTitle;
+            section.ref_commande = newTitle;
             
             // Re-rendre le récapitulatif
             renderProductsSummary();

@@ -132,8 +132,8 @@ try {
     
     if ($extrafield_exists) {
         // UPDATE si l'extrafield existe
-        $sql = "UPDATE " . MAIN_DB_PREFIX . "commandedet_extrafields 
-                SET ref_chantier = '" . $db->escape($new_title) . "'
+        $sql = "UPDATE " . MAIN_DB_PREFIX . "commandedet_extrafields
+                SET ref_commande = '" . $db->escape($new_title) . "'
                 WHERE fk_object = " . ((int) $rowid);
         
         $resql = $db->query($sql);
@@ -145,7 +145,7 @@ try {
         dol_syslog("UPDATE effectué pour rowid=$rowid avec succès", LOG_INFO);
     } else {
         // INSERT si l'extrafield n'existe pas
-        $sql = "INSERT INTO " . MAIN_DB_PREFIX . "commandedet_extrafields (fk_object, ref_chantier)
+        $sql = "INSERT INTO " . MAIN_DB_PREFIX . "commandedet_extrafields (fk_object, ref_commande)
                 VALUES (" . ((int) $rowid) . ", '" . $db->escape($new_title) . "')";
         
         $resql = $db->query($sql);
@@ -158,14 +158,14 @@ try {
     }
     
     // Vérification finale : lire la valeur sauvegardée
-    $sql = "SELECT ref_chantier FROM " . MAIN_DB_PREFIX . "commandedet_extrafields 
+    $sql = "SELECT ref_commande FROM " . MAIN_DB_PREFIX . "commandedet_extrafields
             WHERE fk_object = " . ((int) $rowid);
     $resql = $db->query($sql);
-    
+
     if ($resql) {
         $obj_verify = $db->fetch_object($resql);
         if ($obj_verify) {
-            dol_syslog("VERIFICATION: Valeur en base pour rowid=$rowid : " . $obj_verify->ref_chantier, LOG_INFO);
+            dol_syslog("VERIFICATION: Valeur en base pour rowid=$rowid : " . $obj_verify->ref_commande, LOG_INFO);
         }
     }
     
