@@ -65,14 +65,9 @@ $action = GETPOST('action', 'aZ09');
 if ($action == 'update') {
 	$error = 0;
 
-	$enabled = GETPOSTINT('COLISAGE_ECHANTILLONS_ENABLED');
 	$product1 = GETPOSTINT('COLISAGE_ECHANTILLONS_PRODUCT1');
 	$product2 = GETPOSTINT('COLISAGE_ECHANTILLONS_PRODUCT2');
 
-	$res = dolibarr_set_const($db, 'COLISAGE_ECHANTILLONS_ENABLED', $enabled, 'chaine', 0, '', $conf->entity);
-	if (!($res > 0)) {
-		$error++;
-	}
 	$res = dolibarr_set_const($db, 'COLISAGE_ECHANTILLONS_PRODUCT1', $product1, 'chaine', 0, '', $conf->entity);
 	if (!($res > 0)) {
 		$error++;
