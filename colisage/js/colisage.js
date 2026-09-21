@@ -458,8 +458,9 @@ function renderProductsSummary() {
         sectionsForDisplay.forEach((section, sectionIndex) => {
             html += renderProductsGroup(section.produits, section.titre, section.description, sectionIndex);
         });
-    } else {
-        // Fallback : afficher tous les produits sans section (ancien comportement)
+    } else if (!window.colisageData.produitsAvantPremierTitre ||
+               window.colisageData.produitsAvantPremierTitre.length === 0) {
+        // Fallback : afficher tous les produits sans section uniquement si aucun produit n'a déjà été affiché
         const allProductIds = Object.keys(colisageApp.productData);
         html += renderProductsGroup(allProductIds, null, null, null);
     }

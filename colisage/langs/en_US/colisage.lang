@@ -87,6 +87,15 @@ ErrorSaving = Error while saving
 CommunicationError = Communication error with server
 
 #
+# Samples
+#
+Echantillons = Samples
+EchantillonsSetupDesc = Configure automatic sample addition to orders. When the "echantillons" extrafield is checked on the third party card, the products below will be automatically added to the order (price 0€, quantity 1).
+EchantillonsEnabled = Enable automatic sample addition
+EchantillonsProduct1 = Sample product 1
+EchantillonsProduct2 = Sample product 2
+
+#
 # Sample page
 #
 ColisageArea = Packaging Home
