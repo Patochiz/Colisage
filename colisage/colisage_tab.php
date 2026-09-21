@@ -255,8 +255,10 @@ $produitsAvantPremierTitre = array(); // Produits avant le premier titre
 $total_products = 0;
 $total_details = 0;
 
-// Récupérer les lignes de la commande
-$object->fetch_lines();
+// Récupérer les lignes de la commande (si pas déjà chargées par fetch)
+if (empty($object->lines)) {
+	$object->fetch_lines();
+}
 
 foreach ($object->lines as $line) {
     // MODIFICATION : Détecter les titres de section via le service ID=361 (product_type=1)
