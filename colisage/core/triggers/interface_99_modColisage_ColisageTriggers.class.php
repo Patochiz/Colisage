@@ -88,7 +88,21 @@ class InterfaceColisageTriggers extends DolibarrTriggers
 
 		require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 
+		// Vérifier que les produits ne sont pas déjà dans la commande
+		$existing_product_ids = array();
+		if (!empty($object->lines)) {
+			foreach ($object->lines as $line) {
+				if (!empty($line->fk_product)) {
+					$existing_product_ids[] = (int) $line->fk_product;
+				}
+			}
+		}
+
 		foreach ($product_ids as $pid) {
+			if (in_array((int) $pid, $existing_product_ids)) {
+				dol_syslog("Colisage echantillons: product ".$pid." already in order ".$object->id.", skipping", LOG_INFO);
+				continue;
+			}
 			$product = new Product($this->db);
 			if ($product->fetch($pid) <= 0) {
 				dol_syslog("Colisage echantillons: product ID ".$pid." not found", LOG_WARNING);
