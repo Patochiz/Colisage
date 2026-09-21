@@ -121,7 +121,9 @@ class InterfaceColisageTriggers extends DolibarrTriggers
 				0,
 				null,
 				0,
-				$product->label
+				$product->label,
+				array(),
+				$product->fk_unit
 			);
 
 			if ($result > 0) {
