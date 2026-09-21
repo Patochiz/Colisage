@@ -87,6 +87,15 @@ ErrorSaving = Erreur lors de la sauvegarde
 CommunicationError = Erreur de communication avec le serveur
 
 #
+# Echantillons
+#
+Echantillons = Echantillons
+EchantillonsSetupDesc = Configuration de l'ajout automatique d'echantillons aux commandes. Lorsque l'extrafield "echantillons" est coché sur la fiche du tiers, les produits ci-dessous seront automatiquement ajoutés à la commande (prix 0€, quantité 1).
+EchantillonsEnabled = Activer l'ajout automatique d'echantillons
+EchantillonsProduct1 = Produit echantillon 1
+EchantillonsProduct2 = Produit echantillon 2
+
+#
 # Sample page
 #
 ColisageArea = Accueil Colisage

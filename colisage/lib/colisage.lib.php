@@ -44,6 +44,11 @@ function colisageAdminPrepareHead()
     $h++;
     */
 
+    $head[$h][0] = dol_buildpath("/colisage/admin/echantillons.php", 1);
+    $head[$h][1] = $langs->trans("Echantillons");
+    $head[$h][2] = 'echantillons';
+    $h++;
+
     $head[$h][0] = dol_buildpath("/colisage/admin/about.php", 1);
     $head[$h][1] = $langs->trans("About");
     $head[$h][2] = 'about';
