@@ -255,8 +255,7 @@ $produitsAvantPremierTitre = array(); // Produits avant le premier titre
 $total_products = 0;
 $total_details = 0;
 
-// Forcer un chargement propre des lignes (fetch() peut les avoir déjà chargées)
-$object->lines = array();
+// Récupérer les lignes de la commande
 $object->fetch_lines();
 
 foreach ($object->lines as $line) {
