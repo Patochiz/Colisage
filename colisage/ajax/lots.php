@@ -183,9 +183,16 @@ if ($action === 'save') {
 	if ($r < 0) colisageLotsJson(false, null, 'Erreur SQL : '.$db->lasterror());
 
 	$all = colisage_lots_get_selections($db, $commande_id);
+	$lineSelections = isset($all[$commandedet_id]) ? $all[$commandedet_id] : array();
+
+	// Recopie dans l'extrafield "matiere" de la ligne (fiche de production Einstein)
+	$matiere = colisage_lots_update_matiere($db, $user, $line, $lineSelections);
+
 	colisageLotsJson(true, array(
 		'commandedet_id' => $commandedet_id,
-		'selections'     => isset($all[$commandedet_id]) ? $all[$commandedet_id] : array(),
+		'selections'     => $lineSelections,
+		'matiere'        => $matiere === false ? null : $matiere,
+		'matiere_ok'     => $matiere !== false,
 	));
 }
 

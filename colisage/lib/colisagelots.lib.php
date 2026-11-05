@@ -154,6 +154,64 @@ function colisage_lots_get_shipped($db, $fk_commande)
 }
 
 /**
+ * Recopie les lots choisis dans l'extrafield de ligne "matiere" (texte long),
+ * affiché sur la fiche de production (PDF Einstein).
+ *
+ * Seule la ligne commençant par "Lots :" est gérée par le Colisage : elle est remplacée
+ * (ou supprimée si aucun lot), le reste du texte saisi à la main est conservé.
+ *
+ * @param  DoliDB    $db         Database handler
+ * @param  User      $user       Utilisateur
+ * @param  OrderLine $line       Ligne de commande
+ * @param  array     $selections Sélections de la ligne (batch, qty)
+ * @return string|false          Nouvelle valeur de matiere, false si l'extrafield n'existe pas ou erreur
+ */
+function colisage_lots_update_matiere($db, $user, $line, $selections)
+{
+	require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+	$extrafields = new ExtraFields($db);
+	$extrafields->fetch_name_optionals_label('commandedet');
+	if (empty($extrafields->attributes['commandedet']['type']['matiere'])) {
+		return false;
+	}
+
+	$line->fetch_optionals();
+	$current = isset($line->array_options['options_matiere']) ? (string) $line->array_options['options_matiere'] : '';
+
+	// Retirer l'ancienne ligne "Lots :" en gardant le reste
+	$kept = array();
+	foreach (preg_split('/\r\n|\r|\n/', $current) as $l) {
+		if (preg_match('/^\s*Lots\s*:/i', $l)) {
+			continue;
+		}
+		$kept[] = $l;
+	}
+	while (!empty($kept) && trim(end($kept)) === '') {
+		array_pop($kept);
+	}
+
+	if (!empty($selections)) {
+		$parts = array();
+		foreach ($selections as $s) {
+			$parts[] = $s['batch'].' ('.str_replace('.', ',', (string) price2num($s['qty'], 'MS')).')';
+		}
+		$kept[] = 'Lots : '.implode(' - ', $parts);
+	}
+	$new = implode("\n", $kept);
+
+	if ($new === $current) {
+		return $new;
+	}
+
+	$line->array_options['options_matiere'] = $new;
+	if ($line->updateExtraField('matiere', null, $user) < 0) {
+		dol_syslog("colisage_lots_update_matiere: ".$line->error, LOG_ERR);
+		return false;
+	}
+	return $new;
+}
+
+/**
  * Remplace la sélection de lots d'une ligne de commande.
  *
  * @param  DoliDB $db             Database handler

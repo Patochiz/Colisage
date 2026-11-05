@@ -255,7 +255,11 @@
                 closeModal();
                 if (typeof window.renderProductsSummary === 'function') window.renderProductsSummary();
                 else if (typeof renderProductsSummary === 'function') renderProductsSummary();
-                notify('✅ Lots enregistrés', 'success');
+                if (r.data.matiere_ok) {
+                    notify('✅ Lots enregistrés (repris dans « Matière » pour la fiche de production)', 'success');
+                } else {
+                    notify('✅ Lots enregistrés<br>⚠️ Extrafield « matiere » introuvable : non repris sur la fiche de production', 'info');
+                }
             } else {
                 btn.disabled = false;
                 btn.textContent = 'Enregistrer';
