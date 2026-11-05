@@ -1551,3 +1551,5 @@
 input.qtyl.colisage-lot-prefilled { border: 2px solid #28a745; background: #eaf7ee; }
 input.qtyl.colisage-lot-zeroed { opacity: 0.6; }
 .colisage-lot-notice { margin: 0.5rem 0; }
+.lot-qty-input.lot-qty-warning { border: 2px solid #fd7e14; background: #fff4e6; }
+.colisage-lot-table td.lot-reserved-on { color: #c25e00; font-weight: 600; cursor: help; }

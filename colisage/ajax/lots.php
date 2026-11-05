@@ -79,8 +79,8 @@ if ($action === 'list') {
 	$available = colisage_lots_get_available($db, $line->fk_product);
 	$all = colisage_lots_get_selections($db, $commande_id);
 	$selected = isset($all[$commandedet_id]) ? $all[$commandedet_id] : array();
-	$shippedAll = colisage_lots_get_shipped($db, $commande_id);
-	$shipped = isset($shippedAll[$commandedet_id]) ? $shippedAll[$commandedet_id] : array();
+	// Quantités réservées par lot sur les autres commandes en cours (non encore expédiées)
+	$reserved = colisage_lots_get_reserved_other($db, $line->fk_product, $commande_id);
 
 	// Index des sélections par entrepôt|lot
 	$selIndex = array();
@@ -92,7 +92,8 @@ if ($action === 'list') {
 	foreach ($available as $a) {
 		$key = $a['fk_entrepot'].'|'.$a['batch'];
 		$a['selected_qty'] = isset($selIndex[$key]) ? $selIndex[$key] : 0;
-		$a['shipped_qty'] = isset($shipped[$a['batch']]) ? $shipped[$a['batch']] : 0;
+		$a['reserved_qty'] = isset($reserved[$key]) ? $reserved[$key]['qty'] : 0;
+		$a['reserved_orders'] = isset($reserved[$key]) ? $reserved[$key]['orders'] : array();
 		unset($selIndex[$key]);
 		$lots[] = $a;
 	}
@@ -112,7 +113,8 @@ if ($action === 'list') {
 			'sellby'           => '',
 			'eatby'            => '',
 			'selected_qty'     => $qty,
-			'shipped_qty'      => isset($shipped[$batch]) ? $shipped[$batch] : 0,
+			'reserved_qty'     => isset($reserved[$key]) ? $reserved[$key]['qty'] : 0,
+			'reserved_orders'  => isset($reserved[$key]) ? $reserved[$key]['orders'] : array(),
 			'missing'          => 1,
 		);
 	}

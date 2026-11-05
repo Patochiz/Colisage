@@ -126,19 +126,20 @@
         let rows = '';
         d.lots.forEach((l, i) => {
             const dates = [l.sellby ? 'DLV ' + esc(l.sellby) : '', l.eatby ? 'DLC ' + esc(l.eatby) : ''].filter(Boolean).join(' · ');
-            const shipped = Number(l.shipped_qty) || 0;
+            const reserved = Number(l.reserved_qty) || 0;
+            const reservedTitle = (l.reserved_orders || []).map((o) => o.ref + ' : ' + fmt(o.qty)).join('\n');
             rows += `
                 <tr class="${l.missing ? 'lot-missing' : ''}${Number(l.selected_qty) > 0 ? ' lot-selected' : ''}">
                     <td><strong>${esc(l.batch)}</strong>${dates ? '<div class="lot-dates">' + dates + '</div>' : ''}
                         ${l.missing ? '<div class="lot-warning">Plus en stock</div>' : ''}</td>
                     <td>${esc(l.entrepot)}</td>
                     <td class="right">${fmt(l.qty)}</td>
-                    <td class="right">${shipped > 0 ? fmt(shipped) : ''}</td>
+                    <td class="right lot-reserved${reserved > 0 ? ' lot-reserved-on' : ''}" title="${esc(reservedTitle)}">${reserved > 0 ? fmt(reserved) : ''}</td>
                     <td class="right">
                         <input type="number" class="lot-qty-input" min="0" step="any" data-idx="${i}"
                                value="${Number(l.selected_qty) > 0 ? Number(l.selected_qty) : ''}"
                                ${canEdit ? '' : 'disabled'} placeholder="0">
-                        ${canEdit && !l.missing ? `<button type="button" class="lot-fill-btn" data-idx="${i}" title="Prendre le reste à affecter sur ce lot">↵</button>` : ''}
+                        ${canEdit && !l.missing ? `<button type="button" class="lot-fill-btn" data-idx="${i}" title="Prendre le reste à affecter sur ce lot (dans la limite du stock libre)">↵</button>` : ''}
                     </td>
                 </tr>`;
         });
@@ -147,7 +148,7 @@
             <table class="colisage-lot-table">
                 <thead><tr>
                     <th>Lot</th><th>Entrepôt</th><th class="right">Stock</th>
-                    <th class="right" title="Déjà mis sur une expédition de cette commande">Déjà expédié</th>
+                    <th class="right" title="Quantité de ce lot réservée dans le Colisage d'autres commandes pas encore expédiées (survoler pour le détail)">Cde en cours</th>
                     <th class="right">Qté à expédier</th>
                 </tr></thead>
                 <tbody>${rows}</tbody>
@@ -170,13 +171,20 @@
 
         function refresh() {
             let hasError = false;
+            let hasConflict = false;
             inputs.forEach((inp) => {
                 const l = d.lots[Number(inp.dataset.idx)];
                 const v = parseFloat(String(inp.value).replace(',', '.')) || 0;
-                const over = !allowNeg && v > (Number(l.qty) || 0);
+                const stock = Number(l.qty) || 0;
+                const free = stock - (Number(l.reserved_qty) || 0);
+                const over = !allowNeg && v > stock;
+                const conflict = !over && v > 0 && v > free + 0.0001;
                 inp.classList.toggle('lot-qty-error', over);
-                inp.title = over ? 'Quantité supérieure au stock du lot' : '';
+                inp.classList.toggle('lot-qty-warning', conflict);
+                inp.title = over ? 'Quantité supérieure au stock du lot'
+                    : (conflict ? 'Attention : dépasse le stock libre de ce lot (' + fmt(Math.max(0, free)) + '), déjà réservé sur d\'autres commandes' : '');
                 if (over) hasError = true;
+                if (conflict) hasConflict = true;
                 inp.closest('tr').classList.toggle('lot-selected', v > 0);
             });
             const t = currentTotal();
@@ -192,6 +200,10 @@
                 cls = 'lot-total-over';
                 msg += ' — supérieur à la quantité commandée';
             }
+            if (hasConflict) {
+                msg += '<br>⚠️ Un ou plusieurs lots sont déjà réservés sur d\'autres commandes en cours (case orange).';
+                if (cls === 'lot-total-ok') cls = 'lot-total-partial';
+            }
             totalDiv.className = 'colisage-lot-total ' + cls;
             totalDiv.innerHTML = msg;
             const saveBtn = footer.querySelector('[data-act="save"]');
@@ -206,7 +218,9 @@
                 const l = d.lots[idx];
                 const others = currentTotal() - (parseFloat(String(inp.value).replace(',', '.')) || 0);
                 let rest = Math.max(0, qtyOrdered - others);
-                if (!allowNeg) rest = Math.min(rest, Number(l.qty) || 0);
+                // Plafonné au stock libre (stock - réservé sur les autres commandes)
+                const free = Math.max(0, (Number(l.qty) || 0) - (Number(l.reserved_qty) || 0));
+                rest = Math.min(rest, free);
                 inp.value = rest > 0 ? Math.round(rest * 1000) / 1000 : '';
                 refresh();
             });

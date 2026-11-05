@@ -154,6 +154,57 @@ function colisage_lots_get_shipped($db, $fk_commande)
 }
 
 /**
+ * Quantités d'un produit réservées par lot sur les AUTRES commandes en cours
+ * (sélection Colisage, moins ce qui est déjà parti sur une expédition validée :
+ * dans ce cas le stock physique a déjà été décrémenté).
+ *
+ * Commandes prises en compte : brouillon, validée, en cours d'expédition (statut 0, 1, 2).
+ *
+ * @param  DoliDB $db                Database handler
+ * @param  int    $fk_product        Id produit
+ * @param  int    $exclude_commande  Commande courante (exclue)
+ * @return array                     [fk_entrepot|batch => ['qty' => float, 'orders' => [['ref'=>, 'id'=>, 'qty'=>], ...]]]
+ */
+function colisage_lots_get_reserved_other($db, $fk_product, $exclude_commande)
+{
+	colisage_lots_ensure_table($db);
+
+	$out = array();
+	$sql = "SELECT cl.fk_commande, c.ref, cl.fk_entrepot, cl.batch, cl.qty,";
+	$sql .= " (SELECT COALESCE(SUM(edb.qty), 0)";
+	$sql .= "    FROM ".MAIN_DB_PREFIX."expeditiondet_batch as edb";
+	$sql .= "    INNER JOIN ".MAIN_DB_PREFIX."expeditiondet as ed ON ed.rowid = edb.fk_expeditiondet";
+	$sql .= "    INNER JOIN ".MAIN_DB_PREFIX."expedition as ex ON ex.rowid = ed.fk_expedition";
+	$sql .= "    WHERE ed.fk_elementdet = cl.fk_commandedet AND edb.batch = cl.batch AND ex.fk_statut >= 1";
+	$sql .= " ) as shipped";
+	$sql .= " FROM ".MAIN_DB_PREFIX."colisage_lots as cl";
+	$sql .= " INNER JOIN ".MAIN_DB_PREFIX."commande as c ON c.rowid = cl.fk_commande";
+	$sql .= " WHERE cl.fk_product = ".((int) $fk_product);
+	$sql .= " AND cl.fk_commande <> ".((int) $exclude_commande);
+	$sql .= " AND c.fk_statut IN (0, 1, 2)";
+	$sql .= " AND c.entity IN (".getEntity('commande').")";
+	$sql .= " ORDER BY c.ref";
+	$res = $db->query($sql);
+	if (!$res) {
+		dol_syslog("colisage_lots_get_reserved_other: ".$db->lasterror(), LOG_ERR);
+		return $out;
+	}
+	while ($obj = $db->fetch_object($res)) {
+		$remaining = (float) $obj->qty - (float) $obj->shipped;
+		if ($remaining <= 0) {
+			continue;
+		}
+		$key = ((int) $obj->fk_entrepot).'|'.$obj->batch;
+		if (!isset($out[$key])) {
+			$out[$key] = array('qty' => 0, 'orders' => array());
+		}
+		$out[$key]['qty'] += $remaining;
+		$out[$key]['orders'][] = array('id' => (int) $obj->fk_commande, 'ref' => (string) $obj->ref, 'qty' => $remaining);
+	}
+	return $out;
+}
+
+/**
  * Recopie les lots choisis dans l'extrafield de ligne "matiere" (texte long),
  * affiché sur la fiche de production (PDF Einstein).
  *
