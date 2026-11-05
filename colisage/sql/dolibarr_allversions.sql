@@ -51,3 +51,19 @@ ALTER TABLE llx_colisage_packages ADD INDEX idx_colisage_packages_commande (fk_c
 -- Index pour llx_colisage_items
 ALTER TABLE llx_colisage_items ADD INDEX idx_colisage_items_package (fk_package);
 ALTER TABLE llx_colisage_items ADD INDEX idx_colisage_items_commandedet (fk_commandedet);
+
+-- Lots présélectionnés depuis l'onglet Colisage (pré-remplissage des expéditions)
+CREATE TABLE IF NOT EXISTS llx_colisage_lots
+(
+    rowid           integer AUTO_INCREMENT PRIMARY KEY,
+    fk_commande     integer NOT NULL,
+    fk_commandedet  integer NOT NULL,
+    fk_product      integer NOT NULL,
+    fk_entrepot     integer NOT NULL,
+    batch           varchar(128) NOT NULL,
+    qty             double NOT NULL DEFAULT 0,
+    date_creation   datetime,
+    fk_user_creat   integer,
+    INDEX idx_colisage_lots_commande (fk_commande),
+    INDEX idx_colisage_lots_commandedet (fk_commandedet)
+) ENGINE=innodb;

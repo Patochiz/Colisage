@@ -68,6 +68,11 @@ if ($resCheckCol && $db->num_rows($resCheckCol) == 0) {
     $db->query("ALTER TABLE ".MAIN_DB_PREFIX."colisage_packages ADD COLUMN livraison_num integer DEFAULT 1");
 }
 
+// Lots présélectionnés (table créée si besoin)
+dol_include_once('/colisage/lib/colisagelots.lib.php');
+$colisageLotsEnabled = isModEnabled('productbatch');
+$lotSelections = $colisageLotsEnabled ? colisage_lots_get_selections($db, $id) : array();
+
 // Générer le token CSRF une seule fois pour toute la page
 $token = newToken();
 
@@ -342,8 +347,10 @@ foreach ($object->lines as $line) {
         $product = new Product($db);
         $product_weight = 0;
         $product_weight_units = 0;
+        $product_tobatch = 0;
         
         if ($product->fetch($line->fk_product) > 0) {
+            $product_tobatch = (int) $product->status_batch;
             $product_weight = (float) $product->weight;
             $product_weight_units = (int) $product->weight_units;
             
@@ -359,6 +366,8 @@ foreach ($object->lines as $line) {
             'weight_units' => $product_weight_units,
             'commandedet_id' => $line->rowid,
             'fk_product' => (int) $line->fk_product,
+            'qty' => (float) $line->qty,
+            'tobatch' => ($colisageLotsEnabled ? $product_tobatch : 0),
             'details' => $details
         );
         
@@ -411,6 +420,11 @@ echo 'window.colisageData.sections = ' . json_encode($sectionsData) . ';';
 echo 'window.colisageData.sectionsOriginal = ' . json_encode($sectionsDataOriginal) . ';';
 echo 'window.colisageData.produitsAvantPremierTitre = ' . json_encode($produitsAvantPremierTitre) . ';';
 
+// Lots présélectionnés par ligne de commande (pour le bouton LOT du récapitulatif)
+echo 'window.colisageData.lotsEnabled = ' . ($colisageLotsEnabled ? 'true' : 'false') . ';';
+echo 'window.colisageData.canEditLots = ' . ($user->hasRight('commande', 'creer') ? 'true' : 'false') . ';';
+echo 'window.colisageData.lotSelections = ' . json_encode((object) $lotSelections) . ';';
+
 // Informations de debug
 if ($debug_mode) {
     echo 'window.colisageData.debugInfo = {';
@@ -457,6 +471,8 @@ console.log('🎉 Module Colisage Optimisé initialisé !');
 // Inclure le JavaScript principal avec édition des titres intégrée
 $jsFile = dol_buildpath('/colisage/js/colisage.js', 1);
 print '<script type="text/javascript" src="'.$jsFile.'?v='.time().'"></script>';
+// Popup de sélection des lots
+print '<script type="text/javascript" src="'.dol_buildpath('/colisage/js/colisage_lots.js', 1).'?v='.time().'"></script>';
 
 // Script pour indicateur de sauvegarde
 ?>

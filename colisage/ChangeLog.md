@@ -2,6 +2,17 @@
 
 Toutes les modifications notables de ce projet seront documentées dans ce fichier.
 
+## [1.1] - 2026-11-05
+
+### ✨ Ajouté
+- **Choix des lots dans le Colisage** : bouton `LOT` sur chaque produit géré en lots du récapitulatif. Popup listant les lots en stock (tous entrepôts ouverts) avec stock, quantité déjà expédiée et une case quantité par lot. Couleur du bouton : orange = aucun lot choisi, jaune = partiel, vert = quantité commandée couverte.
+- **Pré-remplissage à la création d'expédition** (hook `expeditioncard`) : sur le formulaire natif, les quantités par lot sont remplies avec la sélection du Colisage (moins ce qui a déjà été expédié sur ce lot), les autres lots de la ligne sont mis à 0. Bandeau d'information, avertissement si un lot choisi n'est pas proposé (plus en stock, autre entrepôt), et confirmation demandée si l'utilisateur modifie les quantités avant de créer l'expédition.
+- Table `llx_colisage_lots` (créée automatiquement si absente).
+- **Lots sur la fiche de production** : à l'enregistrement, une ligne `Lots : L2 (5) - L9 (2)` est écrite dans l'extrafield de ligne `matiere` (le reste du texte est conservé, la ligne est retirée si aucun lot).
+
+### ⚠️ Mise à jour
+- Désactiver puis réactiver le module pour enregistrer le hook `expeditioncard`.
+
 ## [Version Optimisée] - 2025-10-04
 
 ### ✨ Ajouté

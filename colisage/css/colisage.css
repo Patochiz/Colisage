@@ -1446,3 +1446,108 @@
     color: #495057;
     cursor: pointer;
 }
+
+/* ============================================================
+   Sélection des lots (bouton LOT + popup)
+   ============================================================ */
+.product-group-title .product-group-name {
+    flex: 1;
+}
+.product-group-title:has(.colisage-lot-btn) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.colisage-lot-btn {
+    margin-left: auto;
+    border: 1px solid #6c757d;
+    background: #fff;
+    color: #495057;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.colisage-lot-btn:hover { filter: brightness(0.95); }
+.colisage-lot-btn.lot-btn-none { border-color: #fd7e14; color: #fd7e14; }
+.colisage-lot-btn.lot-btn-partial { border-color: #ffc107; background: #fff8e1; color: #856404; }
+.colisage-lot-btn.lot-btn-ok { border-color: #28a745; background: #28a745; color: #fff; }
+
+.colisage-lot-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.colisage-lot-dialog {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+.colisage-lot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+.colisage-lot-title { font-weight: 700; font-size: 1.1rem; }
+.colisage-lot-subtitle { color: #6c757d; font-size: 0.9rem; }
+.colisage-lot-close {
+    border: none;
+    background: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #6c757d;
+}
+.colisage-lot-body { padding: 0.75rem 1rem; overflow: auto; }
+.colisage-lot-empty { padding: 1rem; text-align: center; color: #6c757d; }
+.colisage-lot-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.colisage-lot-table th,
+.colisage-lot-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #f1f3f4; vertical-align: middle; }
+.colisage-lot-table th { background: #f8f9fa; font-weight: 600; text-align: left; }
+.colisage-lot-table .right { text-align: right; }
+.colisage-lot-table tr.lot-selected td { background: #eaf7ee; }
+.colisage-lot-table tr.lot-missing td { color: #a71d2a; }
+.colisage-lot-table .lot-dates { font-size: 0.75rem; color: #6c757d; }
+.colisage-lot-table .lot-warning { font-size: 0.75rem; font-weight: 600; }
+.lot-qty-input { width: 6rem; text-align: right; padding: 0.2rem 0.3rem; }
+.lot-qty-input.lot-qty-error { border: 2px solid #dc3545; background: #fdecea; }
+.lot-fill-btn {
+    border: 1px solid #ced4da;
+    background: #f8f9fa;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0.1rem 0.35rem;
+    margin-left: 0.2rem;
+}
+.colisage-lot-total { margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.9rem; }
+.colisage-lot-total.lot-total-ok { background: #eaf7ee; color: #1e7e34; }
+.colisage-lot-total.lot-total-partial { background: #fff8e1; color: #856404; }
+.colisage-lot-total.lot-total-over { background: #fdecea; color: #a71d2a; }
+.colisage-lot-total.lot-total-none { background: #f1f3f5; color: #495057; }
+.colisage-lot-footer {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #dee2e6;
+}
+.colisage-lot-footer-spacer { flex: 1; }
+.colisage-lot-footer .colisage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Création d'expédition : lignes pré-remplies depuis le Colisage */
+input.qtyl.colisage-lot-prefilled { border: 2px solid #28a745; background: #eaf7ee; }
+input.qtyl.colisage-lot-zeroed { opacity: 0.6; }
+.colisage-lot-notice { margin: 0.5rem 0; }

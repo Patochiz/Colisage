@@ -500,7 +500,11 @@ function renderProductsGroup(productIds, titre = null, description = null, secti
         if (!product) return;
         
         html += `<div class="product-group ${titre ? 'product-in-section' : ''}">`;
-        html += `<div class="product-group-title">${product.name}</div>`;
+        // Bouton LOT (produits gérés en lots) : défini dans js/colisage_lots.js
+        const lotBtn = (typeof window.colisageRenderLotButton === 'function')
+            ? window.colisageRenderLotButton(productId, product)
+            : '';
+        html += `<div class="product-group-title">${lotBtn ? '<span class="product-group-name">' + product.name + '</span>' + lotBtn : product.name}</div>`;
         
         product.details.forEach((detail, index) => {
             const used = getUsedQuantity(productId, index);
